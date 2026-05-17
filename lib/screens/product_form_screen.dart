@@ -10,6 +10,7 @@ import '../providers/current_room_provider.dart';
 import '../providers/house_provider.dart';
 import '../services/product_lookup_service.dart';
 import 'barcode_scanner_screen.dart';
+import 'product_contribution_screen.dart';
 
 class ProductFormScreen extends ConsumerStatefulWidget {
   final Product? product;
@@ -128,9 +129,47 @@ class _ProductFormScreenState extends ConsumerState<ProductFormScreen> {
 
     if (scanned == null) {
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Product not found. Please enter manually.')),
+        final shouldContribute = await showDialog<bool>(
+          context: context,
+          builder: (context) => AlertDialog(
+            title: const Text('Product Not Found'),
+            content: const Text(
+              'This product is not in the database yet. Would you like to add it?',
+            ),
+            actions: [
+              TextButton(
+                onPressed: () => Navigator.of(context).pop(false),
+                child: const Text('Enter Manually'),
+              ),
+              FilledButton(
+                onPressed: () => Navigator.of(context).pop(true),
+                child: const Text('Add Missing Product'),
+              ),
+            ],
+          ),
         );
+
+        if (shouldContribute == true) {
+          final contributionResult = await Navigator.of(context).push<Map<String, dynamic>>(
+            MaterialPageRoute(
+              builder: (_) => ProductContributionScreen(barcode: barcode),
+            ),
+          );
+
+          if (contributionResult != null && mounted) {
+            setState(() {
+              _nameController.text = contributionResult['name']?.toString() ?? '';
+              _brandController.text = contributionResult['brand']?.toString() ?? '';
+              final qty = contributionResult['quantity'];
+              if (qty != null) {
+                _quantityController.text = qty.toString();
+              }
+            });
+            ScaffoldMessenger.of(context).showSnackBar(
+              const SnackBar(content: Text('Product added! Data prefilled from your contribution.')),
+            );
+          }
+        }
       }
       return;
     }

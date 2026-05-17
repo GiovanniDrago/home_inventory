@@ -13,6 +13,7 @@ import '../services/supabase_service.dart';
 import '../theme/app_theme.dart';
 import 'categories_screen.dart';
 import 'invitations_screen.dart';
+import 'opf_settings_screen.dart';
 import 'auth_screen.dart';
 
 class SettingsScreen extends ConsumerWidget {
@@ -98,6 +99,18 @@ class SettingsScreen extends ConsumerWidget {
           onTap: () {
             Navigator.of(context).push(
               MaterialPageRoute(builder: (_) => const InvitationsScreen()),
+            );
+          },
+        ),
+        const Divider(),
+        // Open Products Facts Login
+        ListTile(
+          leading: const Icon(Icons.cloud_upload_outlined),
+          title: const Text('Open Products Facts Login'),
+          trailing: const Icon(Icons.chevron_right),
+          onTap: () {
+            Navigator.of(context).push(
+              MaterialPageRoute(builder: (_) => const OpfSettingsScreen()),
             );
           },
         ),
