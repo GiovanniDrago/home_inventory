@@ -11,22 +11,42 @@ class ScannedProduct {
 }
 
 class ProductLookupService {
-  static const String _baseUrl = 'https://world.openfoodfacts.org/api/v0/product';
+  static const String _opfBaseUrl = 'https://world.openproductsfacts.org/api/v0/product';
+  static const String _offBaseUrl = 'https://world.openfoodfacts.org/api/v0/product';
 
+  /// Lookup barcode across two databases:
+  /// 1. Open Products Facts (general products, household items)
+  /// 2. Open Food Facts (food, fallback)
   static Future<ScannedProduct?> lookupBarcode(String barcode) async {
+    // Try Open Products Facts first (household products)
+    final opfResult = await _lookup(
+      '$_opfBaseUrl/$barcode.json',
+      source: 'Open Products Facts',
+    );
+    if (opfResult != null) return opfResult;
+
+    // Fallback to Open Food Facts
+    final offResult = await _lookup(
+      '$_offBaseUrl/$barcode.json',
+      source: 'Open Food Facts',
+    );
+    return offResult;
+  }
+
+  static Future<ScannedProduct?> _lookup(String url, {required String source}) async {
     try {
       final response = await http.get(
-        Uri.parse('$_baseUrl/$barcode.json'),
+        Uri.parse(url),
         headers: {
           'User-Agent': 'HomeInventoryApp - Flutter',
         },
-      ).timeout(const Duration(seconds: 10));
+      ).timeout(const Duration(seconds: 8));
 
       if (response.statusCode != 200) return null;
 
       final data = jsonDecode(response.body) as Map<String, dynamic>;
 
-      // Open Food Facts returns { product: { ... } }
+      // Both APIs return { product: { ... } }
       if (data['product'] == null) return null;
 
       final product = data['product'] as Map<String, dynamic>;
@@ -54,7 +74,7 @@ class ProductLookupService {
 
   static String? _extractFirstBrand(String? brands) {
     if (brands == null || brands.isEmpty) return null;
-    // Open Food Facts returns comma-separated brands: "Nutella,Ferrero"
+    // APIs return comma-separated brands: "Nutella,Ferrero"
     return brands.split(',').first.trim();
   }
 
