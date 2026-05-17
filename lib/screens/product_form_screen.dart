@@ -30,6 +30,7 @@ class _ProductFormScreenState extends ConsumerState<ProductFormScreen> {
   final _priceController = TextEditingController();
   String? _selectedRoomId;
   String? _selectedCategoryId;
+  bool _isScanning = false;
 
   @override
   void initState() {
@@ -119,7 +120,12 @@ class _ProductFormScreenState extends ConsumerState<ProductFormScreen> {
 
     if (barcode == null || barcode.isEmpty) return;
 
+    setState(() => _isScanning = true);
+
     final scanned = await ProductLookupService.lookupBarcode(barcode);
+
+    setState(() => _isScanning = false);
+
     if (scanned == null) {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
@@ -129,11 +135,26 @@ class _ProductFormScreenState extends ConsumerState<ProductFormScreen> {
       return;
     }
 
-    if (scanned.name != null && scanned.name!.isNotEmpty) {
-      setState(() => _nameController.text = scanned.name!);
-    }
-    if (scanned.brand != null && scanned.brand!.isNotEmpty) {
-      setState(() => _brandController.text = scanned.brand!);
+    setState(() {
+      if (scanned.name != null && scanned.name!.isNotEmpty) {
+        _nameController.text = scanned.name!;
+      }
+      if (scanned.brand != null && scanned.brand!.isNotEmpty) {
+        _brandController.text = scanned.brand!;
+      }
+      if (scanned.quantity != null && scanned.quantity! > 0) {
+        _quantityController.text = scanned.quantity!.toString();
+      }
+    });
+
+    if (mounted) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(
+            'Scanned: ${scanned.name ?? 'Unknown'}${scanned.rawQuantity != null ? ' (${scanned.rawQuantity})' : ''}',
+          ),
+        ),
+      );
     }
   }
 
@@ -183,9 +204,15 @@ class _ProductFormScreenState extends ConsumerState<ProductFormScreen> {
               const SizedBox(height: 16),
               // Scan barcode button
               OutlinedButton.icon(
-                onPressed: _scanBarcode,
-                icon: const Icon(Icons.qr_code_scanner),
-                label: const Text('Scan Barcode'),
+                onPressed: _isScanning ? null : _scanBarcode,
+                icon: _isScanning
+                    ? const SizedBox(
+                        height: 20,
+                        width: 20,
+                        child: CircularProgressIndicator(strokeWidth: 2),
+                      )
+                    : const Icon(Icons.qr_code_scanner),
+                label: Text(_isScanning ? 'Looking up...' : 'Scan Barcode'),
                 style: OutlinedButton.styleFrom(
                   minimumSize: const Size(double.infinity, 48),
                 ),

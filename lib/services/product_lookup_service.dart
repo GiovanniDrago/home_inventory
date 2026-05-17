@@ -4,9 +4,10 @@ import 'package:http/http.dart' as http;
 class ScannedProduct {
   final String? name;
   final String? brand;
-  final String? quantity;
+  final int? quantity;
+  final String? rawQuantity;
 
-  ScannedProduct({this.name, this.brand, this.quantity});
+  ScannedProduct({this.name, this.brand, this.quantity, this.rawQuantity});
 }
 
 class ProductLookupService {
@@ -19,7 +20,7 @@ class ProductLookupService {
         headers: {
           'User-Agent': 'HomeInventoryApp - Flutter',
         },
-      );
+      ).timeout(const Duration(seconds: 10));
 
       if (response.statusCode != 200) return null;
 
@@ -30,13 +31,41 @@ class ProductLookupService {
 
       final product = data['product'] as Map<String, dynamic>;
 
+      final rawName = product['product_name'] as String?;
+      final rawBrands = product['brands'] as String?;
+      final rawQuantity = product['quantity'] as String?;
+
+      // Clean up brands: take only the first one
+      final brand = _extractFirstBrand(rawBrands);
+
+      // Parse quantity: extract number from "400 g" or "750 ml"
+      final parsedQuantity = _parseQuantity(rawQuantity);
+
       return ScannedProduct(
-        name: product['product_name'] as String?,
-        brand: product['brands'] as String?,
-        quantity: product['quantity'] as String?,
+        name: rawName,
+        brand: brand,
+        quantity: parsedQuantity,
+        rawQuantity: rawQuantity,
       );
     } catch (e) {
       return null;
     }
+  }
+
+  static String? _extractFirstBrand(String? brands) {
+    if (brands == null || brands.isEmpty) return null;
+    // Open Food Facts returns comma-separated brands: "Nutella,Ferrero"
+    return brands.split(',').first.trim();
+  }
+
+  static int? _parseQuantity(String? quantityStr) {
+    if (quantityStr == null || quantityStr.isEmpty) return null;
+    // Try to extract the first number from strings like "400 g", "750 ml", "1.5 L"
+    final match = RegExp(r'(\d+(?:[.,]\d+)?)').firstMatch(quantityStr);
+    if (match == null) return null;
+    final numberStr = match.group(1)!.replaceAll(',', '.');
+    final value = double.tryParse(numberStr);
+    if (value == null) return null;
+    return value.round();
   }
 }
