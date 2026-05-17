@@ -1,0 +1,284 @@
+{
+  "@@locale": "en",
+  "appTitle": "Home Inventory",
+  "@appTitle": {
+    "description": "Application title"
+  },
+  "themeLabel": "Theme",
+  "@themeLabel": {
+    "description": "Theme setting label"
+  },
+  "languageLabel": "Language",
+  "@languageLabel": {
+    "description": "Language setting label"
+  },
+  "inventory": "Inventory",
+  "@inventory": {
+    "description": "Inventory tab label"
+  },
+  "settings": "Settings",
+  "@settings": {
+    "description": "Settings tab label"
+  },
+  "addProduct": "Add Product",
+  "@addProduct": {
+    "description": "Add product button label"
+  },
+  "rooms": "Rooms",
+  "@rooms": {
+    "description": "Rooms section label"
+  },
+  "addRoom": "Add Room",
+  "@addRoom": {
+    "description": "Add room button label"
+  },
+  "roomName": "Room Name",
+  "@roomName": {
+    "description": "Room name field label"
+  },
+  "save": "Save",
+  "@save": {
+    "description": "Save button"
+  },
+  "cancel": "Cancel",
+  "@cancel": {
+    "description": "Cancel button"
+  },
+  "delete": "Delete",
+  "@delete": {
+    "description": "Delete button"
+  },
+  "edit": "Edit",
+  "@edit": {
+    "description": "Edit button"
+  },
+  "productName": "Product Name",
+  "@productName": {
+    "description": "Product name field label"
+  },
+  "brand": "Brand",
+  "@brand": {
+    "description": "Brand field label"
+  },
+  "note": "Note",
+  "@note": {
+    "description": "Note field label"
+  },
+  "quantity": "Quantity",
+  "@quantity": {
+    "description": "Quantity field label"
+  },
+  "price": "Price",
+  "@price": {
+    "description": "Price field label"
+  },
+  "category": "Category",
+  "@category": {
+    "description": "Category field label"
+  },
+  "selectRoom": "Select Room",
+  "@selectRoom": {
+    "description": "Select room dropdown label"
+  },
+  "search": "Search",
+  "@search": {
+    "description": "Search hint"
+  },
+  "move": "Move",
+  "@move": {
+    "description": "Move product action"
+  },
+  "terminate": "Terminate",
+  "@terminate": {
+    "description": "Terminate product action"
+  },
+  "profile": "Profile",
+  "@profile": {
+    "description": "Profile settings label"
+  },
+  "nickname": "Nickname",
+  "@nickname": {
+    "description": "Nickname field label"
+  },
+  "email": "Email",
+  "@email": {
+    "description": "Email field label"
+  },
+  "password": "Password",
+  "@password": {
+    "description": "Password field label"
+  },
+  "signIn": "Sign In",
+  "@signIn": {
+    "description": "Sign in button"
+  },
+  "signUp": "Sign Up",
+  "@signUp": {
+    "description": "Sign up button"
+  },
+  "logOut": "Log Out",
+  "@logOut": {
+    "description": "Log out button"
+  },
+  "house": "House",
+  "@house": {
+    "description": "House label"
+  },
+  "houseName": "House Name",
+  "@houseName": {
+    "description": "House name field label"
+  },
+  "createHouse": "Create House",
+  "@createHouse": {
+    "description": "Create house button"
+  },
+  "joinHouse": "Join House",
+  "@joinHouse": {
+    "description": "Join house button"
+  },
+  "searchHouse": "Search for a house...",
+  "@searchHouse": {
+    "description": "Search house hint"
+  },
+  "createdBy": "Created by",
+  "@createdBy": {
+    "description": "Created by label"
+  },
+  "requestJoin": "Request to Join",
+  "@requestJoin": {
+    "description": "Request to join button"
+  },
+  "invitations": "Invitations",
+  "@invitations": {
+    "description": "Invitations menu label"
+  },
+  "incomingInvitations": "Incoming Invitations",
+  "@incomingInvitations": {
+    "description": "Incoming invitations label"
+  },
+  "sentInvitations": "Sent Invitations",
+  "@sentInvitations": {
+    "description": "Sent invitations label"
+  },
+  "accept": "Accept",
+  "@accept": {
+    "description": "Accept button"
+  },
+  "decline": "Decline",
+  "@decline": {
+    "description": "Decline button"
+  },
+  "pending": "Pending",
+  "@pending": {
+    "description": "Pending status"
+  },
+  "rejected": "Rejected",
+  "@rejected": {
+    "description": "Rejected status"
+  },
+  "categories": "Categories",
+  "@categories": {
+    "description": "Categories label"
+  },
+  "manageCategories": "Manage Categories",
+  "@manageCategories": {
+    "description": "Manage categories menu label"
+  },
+  "categoryName": "Category Name",
+  "@categoryName": {
+    "description": "Category name field label"
+  },
+  "categoryDescription": "Description",
+  "@categoryDescription": {
+    "description": "Category description field label"
+  },
+  "addCategory": "Add Category",
+  "@addCategory": {
+    "description": "Add category button"
+  },
+  "checkUpdates": "Check for Updates",
+  "@checkUpdates": {
+    "description": "Check for updates button"
+  },
+  "version": "Version",
+  "@version": {
+    "description": "Version label"
+  },
+  "updateAvailable": "Update Available",
+  "@updateAvailable": {
+    "description": "Update available dialog title"
+  },
+  "newVersion": "A new version is available.",
+  "@newVersion": {
+    "description": "New version message"
+  },
+  "remindTomorrow": "Remind Me Tomorrow",
+  "@remindTomorrow": {
+    "description": "Remind me tomorrow button"
+  },
+  "openReleasePage": "Open Release Page",
+  "@openReleasePage": {
+    "description": "Open release page button"
+  },
+  "noUpdate": "You are on the latest version.",
+  "@noUpdate": {
+    "description": "No update available message"
+  },
+  "requiredField": "This field is required",
+  "@requiredField": {
+    "description": "Required field error"
+  },
+  "invalidEmail": "Please enter a valid email",
+  "@invalidEmail": {
+    "description": "Invalid email error"
+  },
+  "passwordTooShort": "Password must be at least 6 characters",
+  "@passwordTooShort": {
+    "description": "Password too short error"
+  },
+  "nicknameTaken": "Nickname already taken",
+  "@nicknameTaken": {
+    "description": "Nickname taken error"
+  },
+  "emailTaken": "Email already registered",
+  "@emailTaken": {
+    "description": "Email taken error"
+  },
+  "houseNotFound": "House not found",
+  "@houseNotFound": {
+    "description": "House not found error"
+  },
+  "requestSent": "Request sent",
+  "@requestSent": {
+    "description": "Request sent success message"
+  },
+  "moveToRoom": "Move to Room",
+  "@moveToRoom": {
+    "description": "Move to room dialog title"
+  },
+  "productTerminated": "Product terminated",
+  "@productTerminated": {
+    "description": "Product terminated success message"
+  },
+  "allFieldsRequired": "Please fill in all required fields",
+  "@allFieldsRequired": {
+    "description": "All fields required error"
+  },
+  "noRooms": "No rooms yet. Add your first room!",
+  "@noRooms": {
+    "description": "No rooms message"
+  },
+  "noProducts": "No products in this room.",
+  "@noProducts": {
+    "description": "No products message"
+  },
+  "productsPreview": "{count} products",
+  "@productsPreview": {
+    "description": "Products preview text",
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  }
+}
