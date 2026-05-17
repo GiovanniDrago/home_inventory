@@ -8,6 +8,8 @@ import '../providers/rooms_provider.dart';
 import '../providers/categories_provider.dart';
 import '../providers/current_room_provider.dart';
 import '../providers/house_provider.dart';
+import '../services/product_lookup_service.dart';
+import 'barcode_scanner_screen.dart';
 
 class ProductFormScreen extends ConsumerStatefulWidget {
   final Product? product;
@@ -108,6 +110,33 @@ class _ProductFormScreenState extends ConsumerState<ProductFormScreen> {
     }
   }
 
+  Future<void> _scanBarcode() async {
+    final barcode = await Navigator.of(context).push<String>(
+      MaterialPageRoute(
+        builder: (_) => const BarcodeScannerScreen(),
+      ),
+    );
+
+    if (barcode == null || barcode.isEmpty) return;
+
+    final scanned = await ProductLookupService.lookupBarcode(barcode);
+    if (scanned == null) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Product not found. Please enter manually.')),
+        );
+      }
+      return;
+    }
+
+    if (scanned.name != null && scanned.name!.isNotEmpty) {
+      setState(() => _nameController.text = scanned.name!);
+    }
+    if (scanned.brand != null && scanned.brand!.isNotEmpty) {
+      setState(() => _brandController.text = scanned.brand!);
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context)!;
@@ -150,6 +179,16 @@ class _ProductFormScreenState extends ConsumerState<ProductFormScreen> {
                 },
                 loading: () => const LinearProgressIndicator(),
                 error: (_, __) => Text(l10n.requiredField),
+              ),
+              const SizedBox(height: 16),
+              // Scan barcode button
+              OutlinedButton.icon(
+                onPressed: _scanBarcode,
+                icon: const Icon(Icons.qr_code_scanner),
+                label: const Text('Scan Barcode'),
+                style: OutlinedButton.styleFrom(
+                  minimumSize: const Size(double.infinity, 48),
+                ),
               ),
               const SizedBox(height: 16),
               // Name
