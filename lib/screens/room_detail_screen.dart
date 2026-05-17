@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:home_inventory/l10n/app_localizations.dart';
 
 import '../models/room.dart';
+import '../models/category.dart';
 import '../providers/rooms_provider.dart';
 import '../providers/products_provider.dart';
 import '../providers/categories_provider.dart';
@@ -118,32 +119,50 @@ class _RoomDetailScreenState extends ConsumerState<RoomDetailScreen> {
           categoriesAsync.when(
             data: (categories) {
               if (categories.isEmpty) return const SizedBox.shrink();
-              return SizedBox(
-                height: 50,
-                child: ListView.builder(
-                  scrollDirection: Axis.horizontal,
-                  padding: const EdgeInsets.symmetric(horizontal: 16),
-                  itemCount: categories.length,
-                  itemBuilder: (context, index) {
-                    final category = categories[index];
-                    final isSelected = selectedCategories.contains(category.id);
-                    return Padding(
-                      padding: const EdgeInsets.only(right: 8),
-                      child: FilterChip(
-                        label: Text(category.name),
-                        selected: isSelected,
-                        onSelected: (selected) {
-                          final newSet = Set<String>.from(selectedCategories);
-                          if (selected) {
-                            newSet.add(category.id);
-                          } else {
-                            newSet.remove(category.id);
-                          }
-                          ref.read(selectedCategoryFiltersProvider.notifier).state = newSet;
-                        },
+              return Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 16),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    // Category selector button
+                    OutlinedButton.icon(
+                      onPressed: () => _showCategorySelector(context, categories, selectedCategories),
+                      icon: const Icon(Icons.category_outlined),
+                      label: Text(
+                        selectedCategories.isEmpty
+                            ? l10n.category
+                            : '${l10n.category}: ${selectedCategories.length}',
                       ),
-                    );
-                  },
+                      style: OutlinedButton.styleFrom(
+                        minimumSize: const Size(double.infinity, 48),
+                        alignment: Alignment.centerLeft,
+                      ),
+                    ),
+                    // Selected category chips
+                    if (selectedCategories.isNotEmpty)
+                      Padding(
+                        padding: const EdgeInsets.only(top: 8),
+                        child: Wrap(
+                          spacing: 8,
+                          runSpacing: 8,
+                          children: selectedCategories.map((catId) {
+                            final category = categories.firstWhere(
+                              (c) => c.id == catId,
+                              orElse: () => categories.first,
+                            );
+                            return InputChip(
+                              label: Text(category.name),
+                              onDeleted: () {
+                                final newSet = Set<String>.from(selectedCategories);
+                                newSet.remove(catId);
+                                ref.read(selectedCategoryFiltersProvider.notifier).state = newSet;
+                              },
+                              visualDensity: VisualDensity.compact,
+                            );
+                          }).toList(),
+                        ),
+                      ),
+                  ],
                 ),
               );
             },
@@ -240,6 +259,61 @@ class _RoomDetailScreenState extends ConsumerState<RoomDetailScreen> {
           ),
         ],
       ),
+    );
+  }
+
+  void _showCategorySelector(BuildContext context, List<Category> categories, Set<String> selectedIds) {
+    final l10n = AppLocalizations.of(context)!;
+    final localSelected = Set<String>.from(selectedIds);
+
+    showDialog(
+      context: context,
+      builder: (context) {
+        return StatefulBuilder(
+          builder: (context, setDialogState) {
+            return AlertDialog(
+              title: Text(l10n.category),
+              content: SizedBox(
+                width: double.maxFinite,
+                child: ListView.builder(
+                  shrinkWrap: true,
+                  itemCount: categories.length,
+                  itemBuilder: (context, index) {
+                    final category = categories[index];
+                    final isSelected = localSelected.contains(category.id);
+                    return CheckboxListTile(
+                      title: Text(category.name),
+                      value: isSelected,
+                      onChanged: (checked) {
+                        setDialogState(() {
+                          if (checked == true) {
+                            localSelected.add(category.id);
+                          } else {
+                            localSelected.remove(category.id);
+                          }
+                        });
+                      },
+                    );
+                  },
+                ),
+              ),
+              actions: [
+                TextButton(
+                  onPressed: () => Navigator.of(context).pop(),
+                  child: Text(l10n.cancel),
+                ),
+                FilledButton(
+                  onPressed: () {
+                    ref.read(selectedCategoryFiltersProvider.notifier).state = localSelected;
+                    Navigator.of(context).pop();
+                  },
+                  child: Text(l10n.save),
+                ),
+              ],
+            );
+          },
+        );
+      },
     );
   }
 
