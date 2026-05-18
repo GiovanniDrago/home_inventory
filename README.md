@@ -79,7 +79,7 @@ flutter build apk --release
    ```
 
 2. Configure GitHub Secrets in your repository:
-   - `KEYSTORE_BASE64` — Base64-encoded content of `android/app/release.keystore`
+   - `KEYSTORE_BASE64` — Base64-encoded content of `android/app/release.keystore` (base64 -w 0 android/app/release.keystore)
    - `KEYSTORE_PASSWORD` — Your keystore password
    - `KEY_PASSWORD` — Your key password
    - `KEY_ALIAS` — `upload` (or your chosen alias)
