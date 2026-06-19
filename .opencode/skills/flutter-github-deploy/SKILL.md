@@ -200,9 +200,11 @@ git push origin "$tag"
    }
    ```
 
-   **Add ABI version code override** after the `android { ... }` block and before the `flutter { ... }` block:
+   **Add ABI version code override** after the `android { ... }` block and before the `flutter { ... }` block.
 
-   ```gradle
+   **If the project uses `build.gradle` (Groovy DSL):**
+
+   ```groovy
    import com.android.build.gradle.internal.api.ApkVariantOutputImpl
 
    def abiCodes = ['armeabi-v7a': 1, 'arm64-v8a': 2, 'x86_64': 3]
@@ -217,6 +219,36 @@ git push origin "$tag"
        }
    }
    ```
+
+   **If the project uses `build.gradle.kts` (Kotlin DSL):**
+
+   Add the `import` at the **top** of the file (after the plugin block, before any other code):
+
+   ```kotlin
+   import com.android.build.gradle.internal.api.ApkVariantOutputImpl
+   ```
+
+   Then add this block after the `android { ... }` block and before the `flutter { ... }` block:
+
+   ```kotlin
+   val abiCodes = mapOf("armeabi-v7a" to 1, "arm64-v8a" to 2, "x86_64" to 3)
+
+   android.applicationVariants.configureEach {
+       outputs.configureEach {
+           val impl = this as? ApkVariantOutputImpl ?: return@configureEach
+           val abiFilter = impl.filters.find { it.filterType == "ABI" }
+           val abiVersionCode = abiCodes[abiFilter?.identifier] ?: return@configureEach
+           impl.setVersionCodeOverride(versionCode * 10 + abiVersionCode)
+       }
+   }
+   ```
+
+   **Critical Kotlin DSL differences from Groovy:**
+   - The `import` **must** be at the top of the `.kts` file, not mid-file. Mid-file imports are valid in Groovy but a compilation error in Kotlin.
+   - Use `configureEach` with **no parameter** — it is a receiver-style lambda where `this` is the variant/output. A parameterized lambda (`configureEach { variant -> }`) causes a type mismatch.
+   - Use `outputs.configureEach` (not `outputs.forEach`) to avoid overload ambiguity between `Iterable.forEach` and `Map.forEach`.
+   - Use `setVersionCodeOverride(...)` method call instead of `.versionCodeOverride = ...` property assignment. The Kotlin property setter does not resolve for this internal AGP API.
+   - Use `?: return@configureEach` for safe early exit on non-ABI outputs, avoiding the need for explicit null checks.
 
    **Decision point**: Ask the user: "This will make your app produce 3 APKs instead of 1 fat APK. Is that OK?"
 
@@ -335,6 +367,7 @@ Apply only minimal adaptations. Keep the overall approach identical.
 - A local `flutter build apk --release` may fail without a local `android/key.properties` and keystore, even when the GitHub workflow is configured correctly.
 - The reproducible workspace path `/home/vagrant/build/<package-id>` mirrors the convention used by `flutter-fdroid-publish` for F-Droid build servers. Adjust `<package-id>` to match your project's application ID.
 - If the project uses flavors, the APK filenames and build commands must include the flavor name.
+- The ABI version code override snippet differs between Groovy DSL (`build.gradle`) and Kotlin DSL (`build.gradle.kts`). Always use the matching DSL version provided above. The Kotlin version requires: `import` at file top, receiver-style `configureEach` lambdas (no parameters), `outputs.configureEach` instead of `outputs.forEach`, and `setVersionCodeOverride()` instead of property assignment. These differences are **not** cosmetic — using Groovy patterns in a `.kts` file produces 17 compilation errors.
 
 # Implementation checklist for OpenCode
 When using this skill to implement the deploy system in another repository:
@@ -342,8 +375,8 @@ When using this skill to implement the deploy system in another repository:
 - identify whether the Android app uses Groovy or Kotlin DSL
 - identify whether the project uses flavors
 - create or update Android release signing in `android/app/build.gradle` or `android/app/build.gradle.kts`
-- add `dependenciesInfo` block to `build.gradle`
-- add ABI version code override to `build.gradle`
+- add `dependenciesInfo` block to the Android build file
+- add ABI version code override using the matching DSL snippet (Groovy for `build.gradle`, Kotlin for `build.gradle.kts`)
 - create or update `.github/workflows/android-release-build.yml`
 - create `scripts/tag-release.sh`
 - create `android/key.properties_sample`

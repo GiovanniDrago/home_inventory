@@ -5,6 +5,8 @@ plugins {
     id("dev.flutter.flutter-gradle-plugin")
 }
 
+import com.android.build.gradle.internal.api.ApkVariantOutputImpl
+
 android {
     namespace = "com.example.home_inventory"
     compileSdk = flutter.compileSdkVersion
@@ -60,17 +62,14 @@ android {
     }
 }
 
-import com.android.build.gradle.internal.api.ApkVariantOutputImpl
-
 val abiCodes = mapOf("armeabi-v7a" to 1, "arm64-v8a" to 2, "x86_64" to 3)
 
-android.applicationVariants.configureEach { variant ->
-    variant.outputs.forEach { output ->
-        val abiFilter = output.filters.find { it.filterType == "ABI" }
-        val abiVersionCode = abiCodes[abiFilter?.identifier]
-        if (abiVersionCode != null) {
-            (output as ApkVariantOutputImpl).versionCodeOverride = variant.versionCode * 10 + abiVersionCode
-        }
+android.applicationVariants.configureEach {
+    outputs.configureEach {
+        val impl = this as? ApkVariantOutputImpl ?: return@configureEach
+        val abiFilter = impl.filters.find { it.filterType == "ABI" }
+        val abiVersionCode = abiCodes[abiFilter?.identifier] ?: return@configureEach
+        impl.setVersionCodeOverride(versionCode * 10 + abiVersionCode)
     }
 }
 
