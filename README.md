@@ -91,7 +91,7 @@ flutter build apk --release
    ./scripts/tag-release.sh v1.0.0
    ```
 
-This bumps `pubspec.yaml`, commits, creates an annotated tag, and pushes it. GitHub Actions then builds a signed APK and attaches it to the GitHub Release.
+This bumps `pubspec.yaml` to `X.Y.Z+<build_number>`, commits, creates an annotated tag, and pushes it. GitHub Actions then builds 3 signed ABI-split APKs (armeabi-v7a, arm64-v8a, x86_64) and 1 AAB, and attaches all 4 artifacts to the GitHub Release.
 
 ## Project Structure
 

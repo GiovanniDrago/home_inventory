@@ -24,11 +24,15 @@ if ! grep -q "^version:" pubspec.yaml; then
   exit 1
 fi
 
-sed -i.bak -E "s/^version: .*/version: ${version}/" pubspec.yaml
+IFS='.' read -r major minor patch <<< "$version"
+build_number=$((10#$major * 10000 + 10#$minor * 100 + 10#$patch))
+full_version="${version}+${build_number}"
+
+sed -i.bak -E "s/^version: .*/version: ${full_version}/" pubspec.yaml
 rm -f pubspec.yaml.bak
 
 git add pubspec.yaml
-git commit -m "Bump version to ${tag}"
+git commit -m "Bump version to ${full_version}"
 git push
 
 git tag -a "$tag" -m "Release $tag"

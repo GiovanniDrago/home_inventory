@@ -10,6 +10,8 @@ jobs:
     runs-on: ubuntu-latest
     permissions:
       contents: write
+    env:
+      REPRO_BUILD_DIR: /home/vagrant/build/com.example.home_inventory
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
@@ -32,6 +34,16 @@ jobs:
       - name: Generate localization
         run: flutter gen-l10n
 
+      - name: Set release metadata
+        run: |
+          version="${GITHUB_REF_NAME#v}"
+          IFS='.' read -r major minor patch <<< "$version"
+          build_number=$((10#$major * 10000 + 10#$minor * 100 + 10#$patch))
+          source_date_epoch=$(git log -1 --format=%ct "$GITHUB_SHA")
+          echo "APP_VERSION=$version" >> $GITHUB_ENV
+          echo "BUILD_NUMBER=$build_number" >> $GITHUB_ENV
+          echo "SOURCE_DATE_EPOCH=$source_date_epoch" >> $GITHUB_ENV
+
       - name: Decode keystore
         run: |
           echo "${{ secrets.KEYSTORE_BASE64 }}" | base64 --decode > android/app/release.keystore
@@ -43,13 +55,35 @@ jobs:
           echo "keyAlias=${{ secrets.KEY_ALIAS }}" >> android/key.properties
           echo "storeFile=release.keystore" >> android/key.properties
 
-      - name: Build release APK
+      - name: Prepare reproducible workspace
         run: |
-          flutter build apk --release \
+          sudo mkdir -p /home/vagrant/build
+          sudo chown -R "$USER":"$USER" /home/vagrant
+          rsync -a --delete --exclude .git ./ "$REPRO_BUILD_DIR/"
+
+      - name: Build release APKs
+        working-directory: ${{ env.REPRO_BUILD_DIR }}
+        run: |
+          export SOURCE_DATE_EPOCH=${{ env.SOURCE_DATE_EPOCH }}
+          flutter build apk --release --split-per-abi \
+            --build-name "$APP_VERSION" --build-number "$BUILD_NUMBER" \
             --dart-define=SUPABASE_URL=${{ secrets.SUPABASE_URL }} \
             --dart-define=SUPABASE_ANON_KEY=${{ secrets.SUPABASE_ANON_KEY }}
 
-      - name: Upload release APK
+      - name: Build release AAB
+        working-directory: ${{ env.REPRO_BUILD_DIR }}
+        run: |
+          export SOURCE_DATE_EPOCH=${{ env.SOURCE_DATE_EPOCH }}
+          flutter build appbundle --release \
+            --build-name "$APP_VERSION" --build-number "$BUILD_NUMBER" \
+            --dart-define=SUPABASE_URL=${{ secrets.SUPABASE_URL }} \
+            --dart-define=SUPABASE_ANON_KEY=${{ secrets.SUPABASE_ANON_KEY }}
+
+      - name: Upload release artifacts
         uses: softprops/action-gh-release@v2
         with:
-          files: build/app/outputs/flutter-apk/app-release.apk
+          files: |
+            ${{ env.REPRO_BUILD_DIR }}/build/app/outputs/flutter-apk/app-armeabi-v7a-release.apk
+            ${{ env.REPRO_BUILD_DIR }}/build/app/outputs/flutter-apk/app-arm64-v8a-release.apk
+            ${{ env.REPRO_BUILD_DIR }}/build/app/outputs/flutter-apk/app-x86_64-release.apk
+            ${{ env.REPRO_BUILD_DIR }}/build/app/outputs/bundle/release/app-release.aab
