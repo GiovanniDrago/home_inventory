@@ -11,7 +11,7 @@ jobs:
     permissions:
       contents: write
     env:
-      REPRO_BUILD_DIR: /home/vagrant/build/com.example.home_inventory
+      REPRO_BUILD_DIR: /home/vagrant/build/com.takasu.home_inventory
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4

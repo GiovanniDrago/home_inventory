@@ -1,4 +1,4 @@
-package com.example.home_inventory
+package com.takasu.home_inventory
 
 import io.flutter.embedding.android.FlutterActivity
 

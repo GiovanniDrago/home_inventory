@@ -177,9 +177,16 @@ git push origin "$tag"
    - Check whether the Android app uses `build.gradle` or `build.gradle.kts`.
    - Check whether a release workflow or tag script already exists, and extend or replace carefully.
    - Check whether the project uses code generation such as `build_runner`.
-   - Check whether the project uses flavors (`--flavor`).
+    - Check whether the project uses flavors (`--flavor`).
 
-2. Create or update Android release signing AND ABI split configuration.
+2. Ensure Android manifest permissions are production-ready.
+   - Read `android/app/src/main/AndroidManifest.xml`, `android/app/src/debug/AndroidManifest.xml`, and `android/app/src/profile/AndroidManifest.xml`.
+   - **Critical rule**: Any permission the app needs must live in `android/app/src/main/AndroidManifest.xml`. Permissions placed only in `debug/` or `profile/` manifests will NOT be present in the release APK.
+   - If any permissions are found in `debug/AndroidManifest.xml` or `profile/AndroidManifest.xml` that are NOT in the main manifest, move them to `main/AndroidManifest.xml` to ensure they apply to release builds as well.
+   - If a permission is already in both `main/` and `debug/`/`profile/`, remove the duplicate from `debug/` and `profile/` to keep the setup clean.
+   - **Example common bug**: Flutter's template puts `<uses-permission android:name="android.permission.INTERNET"/>` in the debug manifest only, causing release APKs to silently fail all network requests while debug builds work fine. Adding it to `main/AndroidManifest.xml` and removing it from `debug/` and `profile/` fixes this.
+
+3. Create or update Android release signing AND ABI split configuration.
    - Update `android/app/build.gradle` or `android/app/build.gradle.kts`.
    - Load `android/key.properties` with Gradle `Properties`.
    - Define a `release` signing config using:
@@ -200,11 +207,9 @@ git push origin "$tag"
    }
    ```
 
-   **Add ABI version code override** after the `android { ... }` block and before the `flutter { ... }` block.
+   **Add ABI version code override** after the `android { ... }` block and before the `flutter { ... }` block:
 
-   **If the project uses `build.gradle` (Groovy DSL):**
-
-   ```groovy
+   ```gradle
    import com.android.build.gradle.internal.api.ApkVariantOutputImpl
 
    def abiCodes = ['armeabi-v7a': 1, 'arm64-v8a': 2, 'x86_64': 3]
@@ -220,39 +225,9 @@ git push origin "$tag"
    }
    ```
 
-   **If the project uses `build.gradle.kts` (Kotlin DSL):**
-
-   Add the `import` at the **top** of the file (after the plugin block, before any other code):
-
-   ```kotlin
-   import com.android.build.gradle.internal.api.ApkVariantOutputImpl
-   ```
-
-   Then add this block after the `android { ... }` block and before the `flutter { ... }` block:
-
-   ```kotlin
-   val abiCodes = mapOf("armeabi-v7a" to 1, "arm64-v8a" to 2, "x86_64" to 3)
-
-   android.applicationVariants.configureEach {
-       outputs.configureEach {
-           val impl = this as? ApkVariantOutputImpl ?: return@configureEach
-           val abiFilter = impl.filters.find { it.filterType == "ABI" }
-           val abiVersionCode = abiCodes[abiFilter?.identifier] ?: return@configureEach
-           impl.setVersionCodeOverride(versionCode * 10 + abiVersionCode)
-       }
-   }
-   ```
-
-   **Critical Kotlin DSL differences from Groovy:**
-   - The `import` **must** be at the top of the `.kts` file, not mid-file. Mid-file imports are valid in Groovy but a compilation error in Kotlin.
-   - Use `configureEach` with **no parameter** — it is a receiver-style lambda where `this` is the variant/output. A parameterized lambda (`configureEach { variant -> }`) causes a type mismatch.
-   - Use `outputs.configureEach` (not `outputs.forEach`) to avoid overload ambiguity between `Iterable.forEach` and `Map.forEach`.
-   - Use `setVersionCodeOverride(...)` method call instead of `.versionCodeOverride = ...` property assignment. The Kotlin property setter does not resolve for this internal AGP API.
-   - Use `?: return@configureEach` for safe early exit on non-ABI outputs, avoiding the need for explicit null checks.
-
    **Decision point**: Ask the user: "This will make your app produce 3 APKs instead of 1 fat APK. Is that OK?"
 
-3. Create or update `.github/workflows/android-release-build.yml`.
+4. Create or update `.github/workflows/android-release-build.yml`.
    - Keep the trigger as tag push on `v*`.
    - Use `actions/checkout@v4`.
    - Use `actions/setup-java@v4` with Java 17 unless the repository already clearly uses a different Java version.
@@ -277,7 +252,7 @@ git push origin "$tag"
 
    If the project uses flavors, the filenames become `app-<abi>-<flavor>-release.apk`. Add `--flavor <name>` to the build commands and adjust all paths accordingly.
 
-4. Create `android/key.properties_sample`.
+5. Create `android/key.properties_sample`.
    - Include these keys with placeholder values:
      - `storePassword`
      - `keyPassword`
@@ -285,7 +260,7 @@ git push origin "$tag"
      - `storeFile`
    - Do not commit real signing values.
 
-5. Create `scripts/tag-release.sh`.
+6. Create `scripts/tag-release.sh`.
    - Accept a single tag argument like `v1.2.3`.
    - Validate that the tag starts with `v`.
    - Strip the leading `v` to get the Flutter version string.
@@ -294,13 +269,13 @@ git push origin "$tag"
    - Commit and push that version bump.
    - Create and push an annotated tag.
 
-6. Optionally document the flow in `README.md`.
+7. Optionally document the flow in `README.md`.
    - Add the release command: `./scripts/tag-release.sh vX.Y.Z`.
    - Explain that pushing the tag triggers a signed GitHub Release build.
    - List the required GitHub secrets.
    - Note that the release will have 3 APK assets (one per ABI) + 1 AAB.
 
-7. Verify the integration.
+8. Verify the integration.
    - Run `flutter pub get` if possible.
    - Run `flutter analyze` if possible.
    - Run code generation only if the target project requires it.
@@ -308,7 +283,8 @@ git push origin "$tag"
    - Confirm the workflow YAML is valid.
    - Confirm the keystore path written in the workflow matches `storeFile` in `android/key.properties`.
    - Confirm the release artifact paths match the 3 APK paths produced by `--split-per-abi`.
-   - Confirm the AAB path matches the built AAB path.
+    - Confirm the AAB path matches the built AAB path.
+    - Confirm all necessary permissions are in `android/app/src/main/AndroidManifest.xml` and not only in debug/profile manifests.
 
 # Required GitHub secrets
 The workflow expects these GitHub secrets:
@@ -367,7 +343,7 @@ Apply only minimal adaptations. Keep the overall approach identical.
 - A local `flutter build apk --release` may fail without a local `android/key.properties` and keystore, even when the GitHub workflow is configured correctly.
 - The reproducible workspace path `/home/vagrant/build/<package-id>` mirrors the convention used by `flutter-fdroid-publish` for F-Droid build servers. Adjust `<package-id>` to match your project's application ID.
 - If the project uses flavors, the APK filenames and build commands must include the flavor name.
-- The ABI version code override snippet differs between Groovy DSL (`build.gradle`) and Kotlin DSL (`build.gradle.kts`). Always use the matching DSL version provided above. The Kotlin version requires: `import` at file top, receiver-style `configureEach` lambdas (no parameters), `outputs.configureEach` instead of `outputs.forEach`, and `setVersionCodeOverride()` instead of property assignment. These differences are **not** cosmetic — using Groovy patterns in a `.kts` file produces 17 compilation errors.
+- **Permissions in debug/profile manifests do NOT apply to release builds.** Always place every permission the app needs in `android/app/src/main/AndroidManifest.xml`. If a permission only exists in `debug/` or `profile/`, the release APK will lack it and the feature will silently break (e.g. no network access).
 
 # Implementation checklist for OpenCode
 When using this skill to implement the deploy system in another repository:
@@ -375,8 +351,9 @@ When using this skill to implement the deploy system in another repository:
 - identify whether the Android app uses Groovy or Kotlin DSL
 - identify whether the project uses flavors
 - create or update Android release signing in `android/app/build.gradle` or `android/app/build.gradle.kts`
-- add `dependenciesInfo` block to the Android build file
-- add ABI version code override using the matching DSL snippet (Groovy for `build.gradle`, Kotlin for `build.gradle.kts`)
+- ensure all app permissions are in `android/app/src/main/AndroidManifest.xml`, not only in debug/profile manifests
+- add `dependenciesInfo` block to `build.gradle`
+- add ABI version code override to `build.gradle`
 - create or update `.github/workflows/android-release-build.yml`
 - create `scripts/tag-release.sh`
 - create `android/key.properties_sample`
