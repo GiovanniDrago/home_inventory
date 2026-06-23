@@ -1,7 +1,7 @@
 name: home_inventory
 description: "A home inventory app to track household products across rooms."
 publish_to: 'none'
-version: 0.1.5+105
+version: 0.1.7+107
 
 environment:
   sdk: ^3.11.4
