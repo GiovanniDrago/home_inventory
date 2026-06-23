@@ -1,101 +1,158 @@
 import 'dart:convert';
+
+import 'package:flutter/material.dart';
 import 'package:http/http.dart' as http;
 import 'package:package_info_plus/package_info_plus.dart';
 import 'package:shared_preferences/shared_preferences.dart';
+import 'package:url_launcher/url_launcher.dart';
+
+import '../config.dart';
+import '../l10n/app_localizations.dart';
 
 class UpdateService {
-  static const String _repoOwner = 'GiovanniDrago';
-  static const String _repoName = 'home_inventory';
+  static const String _owner = AppConfig.githubOwner;
+  static const String _repo = AppConfig.githubRepo;
   static const String _lastCheckKey = 'last_update_check';
-  static const String _delayUntilKey = 'update_delay_until';
 
-  static Future<Map<String, dynamic>?> checkForUpdate() async {
+  static String? _cachedVersion;
+
+  static Future<String> _getCurrentVersion() async {
+    if (_cachedVersion != null) return _cachedVersion!;
+    final packageInfo = await PackageInfo.fromPlatform();
+    _cachedVersion = packageInfo.version;
+    return _cachedVersion!;
+  }
+
+  static Future<String> get currentVersion async => _getCurrentVersion();
+
+  static Future<void> check(BuildContext context, {bool silent = true}) async {
+    final prefs = await SharedPreferences.getInstance();
+    final lastCheck = prefs.getString(_lastCheckKey);
+    final today = DateTime.now().toIso8601String().substring(0, 10);
+
+    if (silent && lastCheck == today) return;
+
+    final latest = await _fetchLatestRelease();
+    final currentVersion = await _getCurrentVersion();
+
+    if (!silent) {
+      await prefs.setString(_lastCheckKey, today);
+    } else if (latest != null && _isNewer(latest.version, currentVersion)) {
+      await prefs.setString(_lastCheckKey, today);
+    }
+
+    if (latest == null) {
+      if (!silent && context.mounted) {
+        _showSnack(context, AppLocalizations.of(context)!.updateError);
+      }
+      return;
+    }
+
+    if (_isNewer(latest.version, currentVersion)) {
+      if (context.mounted) {
+        _showUpdateDialog(context, latest);
+      }
+    } else if (!silent && context.mounted) {
+      _showSnack(context, AppLocalizations.of(context)!.noUpdates);
+    }
+  }
+
+  static Future<_ReleaseInfo?> _fetchLatestRelease() async {
     try {
-      final packageInfo = await PackageInfo.fromPlatform();
-      final currentVersion = packageInfo.version;
-
-      final response = await http.get(
-        Uri.parse(
-          'https://api.github.com/repos/$_repoOwner/$_repoName/releases/latest',
-        ),
-        headers: {'Accept': 'application/vnd.github.v3+json'},
+      final currentVersion = await _getCurrentVersion();
+      final uri = Uri.parse(
+        'https://api.github.com/repos/$_owner/$_repo/releases/latest',
       );
-
-      if (response.statusCode != 200) return null;
+      final response = await http.get(
+        uri,
+        headers: {
+          'Accept': 'application/vnd.github+json',
+          'User-Agent': '$_repo/$currentVersion',
+        },
+      );
+      if (response.statusCode != 200) {
+        debugPrint('GitHub API error: ${response.statusCode} ${response.body}');
+        return null;
+      }
 
       final data = jsonDecode(response.body) as Map<String, dynamic>;
-      final latestTag = data['tag_name'] as String? ?? '';
-      final latestVersion = latestTag.replaceFirst('v', '');
+      final tagName = data['tag_name'] as String?;
+      final assets = data['assets'] as List<dynamic>?;
 
-      // Simple version comparison
-      final hasUpdate = _compareVersions(latestVersion, currentVersion) > 0;
+      if (tagName == null) return null;
 
-      if (hasUpdate) {
-        return {
-          'currentVersion': currentVersion,
-          'latestVersion': latestVersion,
-          'tagName': latestTag,
-          'releaseUrl': data['html_url'] as String? ?? '',
-        };
+      String? downloadUrl;
+      if (assets != null && assets.isNotEmpty) {
+        downloadUrl = assets.first['browser_download_url'] as String?;
       }
 
+      return _ReleaseInfo(
+        version: tagName.replaceFirst('v', ''),
+        downloadUrl:
+            downloadUrl ?? 'https://github.com/$_owner/$_repo/releases/latest',
+      );
+    } catch (e, stack) {
+      debugPrint('Update check error: $e');
+      debugPrint('$stack');
       return null;
-    } catch (e) {
-      return null;
     }
   }
 
-  static Future<bool> shouldCheckAutomatically() async {
-    final prefs = await SharedPreferences.getInstance();
-    final lastCheck = prefs.getInt(_lastCheckKey);
-    final delayUntil = prefs.getInt(_delayUntilKey);
+  static bool _isNewer(String latest, String current) {
+    final l = latest.split('+').first.split('.').map(int.tryParse).toList();
+    final c = current.split('+').first.split('.').map(int.tryParse).toList();
 
-    final now = DateTime.now().millisecondsSinceEpoch;
-
-    // Respect delay
-    if (delayUntil != null && now < delayUntil) {
-      return false;
+    for (int i = 0; i < 3; i++) {
+      final li = i < l.length ? (l[i] ?? 0) : 0;
+      final ci = i < c.length ? (c[i] ?? 0) : 0;
+      if (li > ci) return true;
+      if (li < ci) return false;
     }
-
-    // Check once per day
-    if (lastCheck != null) {
-      final lastCheckDate = DateTime.fromMillisecondsSinceEpoch(lastCheck);
-      final difference = DateTime.now().difference(lastCheckDate);
-      if (difference.inHours < 24) {
-        return false;
-      }
-    }
-
-    return true;
+    return false;
   }
 
-  static Future<void> markChecked() async {
-    final prefs = await SharedPreferences.getInstance();
-    await prefs.setInt(_lastCheckKey, DateTime.now().millisecondsSinceEpoch);
+  static void _showUpdateDialog(BuildContext context, _ReleaseInfo release) {
+    final l10n = AppLocalizations.of(context)!;
+    showDialog(
+      context: context,
+      builder: (_) => AlertDialog(
+        title: Text('${l10n.updateAvailable} v${release.version}'),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context),
+            child: Text(l10n.later),
+          ),
+          FilledButton(
+            onPressed: () async {
+              final uri = Uri.parse(release.downloadUrl);
+              if (await canLaunchUrl(uri)) {
+                await launchUrl(uri, mode: LaunchMode.externalApplication);
+              } else {
+                if (context.mounted) {
+                  _showSnack(
+                    context,
+                    AppLocalizations.of(context)!.updateError,
+                  );
+                }
+              }
+              if (context.mounted) Navigator.pop(context);
+            },
+            child: Text(l10n.download),
+          ),
+        ],
+      ),
+    );
   }
 
-  static Future<void> setDelayOneDay() async {
-    final prefs = await SharedPreferences.getInstance();
-    final tomorrow = DateTime.now().add(const Duration(days: 1));
-    await prefs.setInt(_delayUntilKey, tomorrow.millisecondsSinceEpoch);
+  static void _showSnack(BuildContext context, String message) {
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(content: Text(message)),
+    );
   }
+}
 
-  static Future<String> getCurrentVersion() async {
-    final packageInfo = await PackageInfo.fromPlatform();
-    return packageInfo.version;
-  }
-
-  static int _compareVersions(String v1, String v2) {
-    final parts1 = v1.split('.').map(int.tryParse).whereType<int>().toList();
-    final parts2 = v2.split('.').map(int.tryParse).whereType<int>().toList();
-
-    for (var i = 0; i < parts1.length && i < parts2.length; i++) {
-      if (parts1[i] > parts2[i]) return 1;
-      if (parts1[i] < parts2[i]) return -1;
-    }
-
-    if (parts1.length > parts2.length) return 1;
-    if (parts1.length < parts2.length) return -1;
-    return 0;
-  }
+class _ReleaseInfo {
+  final String version;
+  final String downloadUrl;
+  _ReleaseInfo({required this.version, required this.downloadUrl});
 }

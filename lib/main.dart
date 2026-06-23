@@ -6,6 +6,7 @@ import 'package:home_inventory/l10n/app_localizations.dart';
 import 'providers/locale_provider.dart';
 import 'providers/theme_provider.dart';
 import 'services/supabase_service.dart';
+import 'services/update_service.dart';
 import 'theme/app_theme.dart';
 import 'screens/splash_screen.dart';
 
@@ -38,7 +39,28 @@ class MyApp extends ConsumerWidget {
         GlobalWidgetsLocalizations.delegate,
         GlobalCupertinoLocalizations.delegate,
       ],
-      home: const SplashScreen(),
+      home: const _AppStartupWrapper(child: SplashScreen()),
     );
   }
+}
+
+class _AppStartupWrapper extends StatefulWidget {
+  final Widget child;
+  const _AppStartupWrapper({required this.child});
+
+  @override
+  State<_AppStartupWrapper> createState() => _AppStartupWrapperState();
+}
+
+class _AppStartupWrapperState extends State<_AppStartupWrapper> {
+  @override
+  void initState() {
+    super.initState();
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      UpdateService.check(context, silent: true);
+    });
+  }
+
+  @override
+  Widget build(BuildContext context) => widget.child;
 }

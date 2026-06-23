@@ -196,8 +196,8 @@
   "@addCategory": {
     "description": "Add category button"
   },
-  "checkUpdates": "Check for Updates",
-  "@checkUpdates": {
+  "checkForUpdates": "Check for Updates",
+  "@checkForUpdates": {
     "description": "Check for updates button"
   },
   "version": "Version",
@@ -208,21 +208,21 @@
   "@updateAvailable": {
     "description": "Update available dialog title"
   },
-  "newVersion": "A new version is available.",
-  "@newVersion": {
-    "description": "New version message"
-  },
-  "remindTomorrow": "Remind Me Tomorrow",
-  "@remindTomorrow": {
-    "description": "Remind me tomorrow button"
-  },
-  "openReleasePage": "Open Release Page",
-  "@openReleasePage": {
-    "description": "Open release page button"
-  },
-  "noUpdate": "You are on the latest version.",
-  "@noUpdate": {
+  "noUpdates": "No updates available",
+  "@noUpdates": {
     "description": "No update available message"
+  },
+  "updateError": "Could not check for updates",
+  "@updateError": {
+    "description": "Update check error message"
+  },
+  "download": "Download",
+  "@download": {
+    "description": "Download button"
+  },
+  "later": "Later",
+  "@later": {
+    "description": "Later button"
   },
   "requiredField": "This field is required",
   "@requiredField": {

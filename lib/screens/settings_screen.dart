@@ -2,8 +2,6 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:home_inventory/l10n/app_localizations.dart';
 
-import 'package:url_launcher/url_launcher.dart';
-
 import '../providers/theme_provider.dart';
 import '../providers/locale_provider.dart';
 import '../providers/auth_provider.dart';
@@ -118,13 +116,13 @@ class SettingsScreen extends ConsumerWidget {
         // Check Updates
         ListTile(
           leading: const Icon(Icons.system_update_outlined),
-          title: Text(l10n.checkUpdates),
+          title: Text(l10n.checkForUpdates),
           trailing: const Icon(Icons.chevron_right),
-          onTap: () => _checkUpdates(context),
+          onTap: () => UpdateService.check(context, silent: false),
         ),
         // Version
         FutureBuilder<String>(
-          future: UpdateService.getCurrentVersion(),
+          future: UpdateService.currentVersion,
           builder: (context, snapshot) {
             return ListTile(
               leading: const Icon(Icons.info_outline),
@@ -142,49 +140,6 @@ class SettingsScreen extends ConsumerWidget {
         ),
       ],
     );
-  }
-
-  Future<void> _checkUpdates(BuildContext context) async {
-    final l10n = AppLocalizations.of(context)!;
-    final update = await UpdateService.checkForUpdate();
-    await UpdateService.markChecked();
-
-    if (!context.mounted) return;
-
-    if (update != null) {
-      showDialog(
-        context: context,
-        builder: (context) => AlertDialog(
-          title: Text(l10n.updateAvailable),
-          content: Text(
-            '${l10n.newVersion}\n\nCurrent: ${update['currentVersion']}\nLatest: ${update['latestVersion']}',
-          ),
-          actions: [
-            TextButton(
-              onPressed: () async {
-                await UpdateService.setDelayOneDay();
-                if (context.mounted) Navigator.of(context).pop();
-              },
-              child: Text(l10n.remindTomorrow),
-            ),
-            FilledButton(
-              onPressed: () async {
-                final url = Uri.parse(update['releaseUrl'] as String);
-                if (await canLaunchUrl(url)) {
-                  await launchUrl(url, mode: LaunchMode.externalApplication);
-                }
-                if (context.mounted) Navigator.of(context).pop();
-              },
-              child: Text(l10n.openReleasePage),
-            ),
-          ],
-        ),
-      );
-    } else {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text(l10n.noUpdate)),
-      );
-    }
   }
 
   void _showLogoutDialog(BuildContext context, WidgetRef ref) {
