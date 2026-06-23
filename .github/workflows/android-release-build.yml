@@ -66,18 +66,14 @@ jobs:
         run: |
           export SOURCE_DATE_EPOCH=${{ env.SOURCE_DATE_EPOCH }}
           flutter build apk --release --split-per-abi \
-            --build-name "$APP_VERSION" --build-number "$BUILD_NUMBER" \
-            --dart-define=SUPABASE_URL=${{ secrets.SUPABASE_URL }} \
-            --dart-define=SUPABASE_ANON_KEY=${{ secrets.SUPABASE_ANON_KEY }}
+            --build-name "$APP_VERSION" --build-number "$BUILD_NUMBER"
 
       - name: Build release AAB
         working-directory: ${{ env.REPRO_BUILD_DIR }}
         run: |
           export SOURCE_DATE_EPOCH=${{ env.SOURCE_DATE_EPOCH }}
           flutter build appbundle --release \
-            --build-name "$APP_VERSION" --build-number "$BUILD_NUMBER" \
-            --dart-define=SUPABASE_URL=${{ secrets.SUPABASE_URL }} \
-            --dart-define=SUPABASE_ANON_KEY=${{ secrets.SUPABASE_ANON_KEY }}
+            --build-name "$APP_VERSION" --build-number "$BUILD_NUMBER"
 
       - name: Upload release artifacts
         uses: softprops/action-gh-release@v2

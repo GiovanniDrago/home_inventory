@@ -1,26 +1,33 @@
 # Supabase Database Setup
 
-## Quick Start
+This app uses the shared application-database Supabase project.
 
-1. Go to your Supabase project: https://supabase.com/dashboard/project/cquijdaatorygfdktxrv
-2. Open the **SQL Editor** (left sidebar)
-3. Click **New Query**
-4. Copy and paste the contents of `schema.sql` into the editor
-5. Click **Run**
+## Project
 
-## What the schema creates
+- **URL**: `https://supabase.com/dashboard/project/riikpjuqkgpbdarodiek`
+- **Project name**: `applications-data`
+
+## Schema
+
+The application schema is defined in the `application-database` repository at:
+`/home/takasu/Documents/codinglab/application-database/supabase/migrations/`
+
+It creates the following tables scoped to the HomeInventory app:
 
 - `houses` — Groups users into shared households
-- `profiles` — User nicknames, emails, and house membership
+- `profiles` — User nicknames, emails, and house membership (extends `users` table)
 - `rooms` — Rooms within a house
 - `categories` — Product categories per house
 - `products` — Inventory items
 - `product_history` — Audit log for all product changes
 - `invitations` — House join requests
 
+The `applications` table registers `home_inventory` (app_key) with package name `com.takasu.home_inventory`.
+
 ## Row Level Security (RLS)
 
 All tables have RLS policies so that:
+
 - Users can only read/update their own `profile`
 - House members can read/manage `rooms`, `categories`, and `products` in their house
 - Product history is readable by house members
@@ -28,21 +35,17 @@ All tables have RLS policies so that:
 
 ## Auth Configuration
 
-In your Supabase Dashboard:
+In the Supabase Dashboard:
+
 1. Go to **Authentication > Providers**
 2. Ensure **Email** provider is enabled
 3. You may want to disable **Confirm email** for easier testing (optional)
 
 ## Supabase Credentials
 
-**Never commit credentials to version control.**
+Credentials are hardcoded in `lib/config.dart`. The app uses the shared Supabase project for all applications.
 
-For local development, pass them via `--dart-define` when running the app:
-
-```bash
-flutter run \
-  --dart-define=SUPABASE_URL=https://your-project.supabase.co \
-  --dart-define=SUPABASE_ANON_KEY=your-anon-key
+```dart
+static const supabaseUrl = 'https://riikpjuqkgpbdarodiek.supabase.co';
+static const supabaseAnonKey = 'sb_publishable_...';
 ```
-
-For production builds, configure `SUPABASE_URL` and `SUPABASE_ANON_KEY` as GitHub repository secrets. They are injected via `--dart-define` in the CI/CD workflow.

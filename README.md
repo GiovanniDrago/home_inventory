@@ -39,25 +39,17 @@ cd home_inventory
 
 ### 2. Set up Supabase database
 
-1. Open your Supabase project SQL Editor
-2. Copy and paste the contents of `supabase/schema.sql`
-3. Run the query
+The database schema is managed in the `application-database` repository. The app uses the shared Supabase project at `riikpjuqkgpbdarodiek`.
 
-See `supabase/README.md` for detailed instructions.
+See `supabase/README.md` for details.
 
 ### 3. Run the app
-
-Pass your Supabase credentials via `--dart-define`:
 
 ```bash
 flutter pub get
 flutter gen-l10n
-flutter run \
-  --dart-define=SUPABASE_URL=https://your-project.supabase.co \
-  --dart-define=SUPABASE_ANON_KEY=your-anon-key
+flutter run
 ```
-
-> Replace `your-project` and `your-anon-key` with your actual Supabase values.
 
 ## Building for Release
 
@@ -83,8 +75,6 @@ flutter build apk --release
    - `KEYSTORE_PASSWORD` — Your keystore password
    - `KEY_PASSWORD` — Your key password
    - `KEY_ALIAS` — `upload` (or your chosen alias)
-    - `SUPABASE_URL` — Your Supabase project URL
-    - `SUPABASE_ANON_KEY` — Your Supabase anon key
 
 3. Create and push a release tag:
    ```bash
@@ -103,12 +93,10 @@ lib/
   services/        # Supabase and Update services
   theme/           # Material 3 theme catalog
   l10n/            # Localization ARB files
-  env.dart         # Environment variable reader
+  config.dart      # App configuration (Supabase URL, app identity)
   main.dart        # App entry point
 
 supabase/
-  schema.sql       # Database tables, RLS policies, triggers
-  seed.sql         # Default categories seed
   README.md        # Supabase setup guide
 ```
 
