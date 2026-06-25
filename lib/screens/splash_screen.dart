@@ -6,6 +6,7 @@ import '../providers/auth_provider.dart';
 import '../providers/house_provider.dart';
 import '../providers/rooms_provider.dart';
 import '../providers/categories_provider.dart';
+import '../services/supabase_service.dart';
 import 'auth_screen.dart';
 import 'house_onboarding_screen.dart';
 import 'main_shell.dart';
@@ -29,10 +30,26 @@ class _SplashScreenState extends ConsumerState<SplashScreen> {
 
     // Check session directly from Supabase client (synchronous, restored from storage)
     final session = Supabase.instance.client.auth.currentSession;
-    if (session != null) {
-      await ref.read(profileProvider.notifier).refresh();
-      final profile = ref.read(profileProvider).value;
-      if (profile?.houseId != null) {
+        if (session != null) {
+          await ref.read(profileProvider.notifier).refresh();
+          var profile = ref.read(profileProvider).value;
+
+          if (profile == null) {
+            final user = session.user;
+            final email = user.email ?? '';
+            final nickname = email.isNotEmpty
+                ? email.split('@').first
+                : user.id.substring(0, 8);
+            await SupabaseService.createProfile(
+              userId: user.id,
+              nickname: nickname,
+              email: email,
+            );
+            await ref.read(profileProvider.notifier).refresh();
+            profile = ref.read(profileProvider).value;
+          }
+
+          if (profile?.houseId != null) {
         await ref.read(houseProvider.notifier).loadHouse(profile!.houseId);
         await ref.read(roomsProvider.notifier).loadRooms(profile.houseId!);
         await ref.read(categoriesProvider.notifier).loadCategories(profile.houseId!);

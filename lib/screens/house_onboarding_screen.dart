@@ -61,6 +61,7 @@ class _HouseOnboardingScreenState extends ConsumerState<HouseOnboardingScreen> {
         );
       }
     } catch (e) {
+      debugPrint('_createHouse error: $e');
       setState(() => _errorMessage = e.toString());
     } finally {
       setState(() => _isLoading = false);

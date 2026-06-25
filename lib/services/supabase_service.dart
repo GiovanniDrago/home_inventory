@@ -69,12 +69,20 @@ class SupabaseService {
       'nickname': nickname,
       'email': email,
     };
-    final response = await _client.from('profiles').insert(data).select().single();
+    final response = await _client.from('profiles').upsert(data).select().single();
     return Profile.fromMap(response);
   }
 
   static Future<void> updateProfileHouse(String userId, String? houseId) async {
-    await _client.from('profiles').update({'house_id': houseId}).eq('id', userId);
+    final user = _client.auth.currentUser;
+    final email = user?.email ?? '';
+    final nickname = email.isNotEmpty ? email.split('@').first : userId.substring(0, 8);
+    await _client.from('profiles').upsert({
+      'id': userId,
+      'nickname': nickname,
+      'email': email,
+      'house_id': houseId,
+    });
   }
 
   static Future<bool> isNicknameTaken(String nickname) async {

@@ -80,7 +80,21 @@ class _AuthScreenState extends ConsumerState<AuthScreen> {
 
         if (response.user != null) {
           await ref.read(profileProvider.notifier).refresh();
-          final profile = ref.read(profileProvider).value;
+          var profile = ref.read(profileProvider).value;
+
+          if (profile == null) {
+            final user = response.user!;
+            final email = user.email ?? _emailController.text.trim();
+            final nickname = email.split('@').first;
+            await SupabaseService.createProfile(
+              userId: user.id,
+              nickname: nickname,
+              email: email,
+            );
+            await ref.read(profileProvider.notifier).refresh();
+            profile = ref.read(profileProvider).value;
+          }
+
           if (mounted) {
             if (profile?.houseId != null) {
               await ref.read(houseProvider.notifier).loadHouse(profile!.houseId);
@@ -100,6 +114,7 @@ class _AuthScreenState extends ConsumerState<AuthScreen> {
     } on AuthException catch (e) {
       setState(() => _errorMessage = e.message);
     } catch (e) {
+      debugPrint('_submit error: $e');
       setState(() => _errorMessage = e.toString());
     } finally {
       ref.read(authLoadingProvider.notifier).state = false;
