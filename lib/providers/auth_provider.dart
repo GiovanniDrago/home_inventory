@@ -43,7 +43,7 @@ class ProfileNotifier extends StateNotifier<AsyncValue<Profile?>> {
 
   Future<void> setHouse(String? houseId) async {
     final userId = SupabaseService.currentUserId;
-    if (userId == null) return;
+    if (userId == null) throw Exception('Not authenticated');
     await SupabaseService.updateProfileHouse(userId, houseId);
     await refresh();
   }

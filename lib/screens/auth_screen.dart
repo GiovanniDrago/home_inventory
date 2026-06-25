@@ -55,7 +55,7 @@ class _AuthScreenState extends ConsumerState<AuthScreen> {
           password: _passwordController.text,
         );
 
-        if (response.user != null) {
+        if (response.session != null) {
           await SupabaseService.createProfile(
             userId: response.user!.id,
             nickname: _nicknameController.text.trim(),
@@ -67,6 +67,10 @@ class _AuthScreenState extends ConsumerState<AuthScreen> {
               MaterialPageRoute(builder: (_) => const HouseOnboardingScreen()),
             );
           }
+        } else if (response.user != null) {
+          setState(() => _errorMessage = AppLocalizations.of(context)!.emailTaken);
+          ref.read(authLoadingProvider.notifier).state = false;
+          return;
         }
       } else {
         final response = await SupabaseService.signIn(

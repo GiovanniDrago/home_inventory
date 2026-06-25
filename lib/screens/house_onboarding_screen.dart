@@ -40,6 +40,12 @@ class _HouseOnboardingScreenState extends ConsumerState<HouseOnboardingScreen> {
       await ref.read(profileProvider.notifier).setHouse(house.id);
       await ref.read(houseProvider.notifier).loadHouse(house.id);
 
+      // Verify profile was updated before creating rooms
+      final updatedProfile = ref.read(profileProvider).value;
+      if (updatedProfile == null || updatedProfile.houseId != house.id) {
+        throw Exception('Failed to update profile house membership');
+      }
+
       // Create default room
       await ref.read(roomsProvider.notifier).addRoom(
         AppLocalizations.of(context)!.house,
