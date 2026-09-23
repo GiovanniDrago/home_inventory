@@ -32,8 +32,17 @@ class _HouseOnboardingScreenState extends ConsumerState<HouseOnboardingScreen> {
     setState(() => _isLoading = true);
     try {
       final userId = SupabaseService.currentUserId!;
+      final name = _houseNameController.text.trim();
+      final l10n = AppLocalizations.of(context)!;
+
+      final alreadyExists = await SupabaseService.houseNameExists(userId, name);
+      if (alreadyExists) {
+        setState(() => _errorMessage = l10n.houseNameTaken);
+        return;
+      }
+
       final house = await SupabaseService.createHouse(
-        name: _houseNameController.text.trim(),
+        name: name,
         createdBy: userId,
       );
 

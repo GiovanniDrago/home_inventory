@@ -32,6 +32,7 @@
   "logOut": "Disconnetti",
   "house": "Casa",
   "houseName": "Nome Casa",
+  "houseNameTaken": "Hai gia una casa con questo nome",
   "createHouse": "Crea Casa",
   "joinHouse": "Unisciti a Casa",
   "searchHouse": "Cerca una casa...",

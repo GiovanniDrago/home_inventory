@@ -128,6 +128,10 @@
   "@houseName": {
     "description": "House name field label"
   },
+  "houseNameTaken": "You already have a house with this name",
+  "@houseNameTaken": {
+    "description": "Error shown when creating a house with a duplicate name"
+  },
   "createHouse": "Create House",
   "@createHouse": {
     "description": "Create house button"

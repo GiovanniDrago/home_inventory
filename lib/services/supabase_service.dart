@@ -116,6 +116,16 @@ class SupabaseService {
     return House.fromMap(response);
   }
 
+  static Future<bool> houseNameExists(String userId, String name) async {
+    final response = await _client
+        .from('houses')
+        .select('id')
+        .eq('created_by', userId)
+        .ilike('name', name)
+        .maybeSingle();
+    return response != null;
+  }
+
   static Future<House?> getHouse(String houseId) async {
     final response = await _client
         .from('houses')
