@@ -81,21 +81,42 @@ class UpdateService {
 
       if (tagName == null) return null;
 
-      String? downloadUrl;
-      if (assets != null && assets.isNotEmpty) {
-        downloadUrl = assets.first['browser_download_url'] as String?;
-      }
+      final downloadUrl = _pickApkDownloadUrl(assets) ??
+          'https://github.com/$_owner/$_repo/releases/latest';
 
       return _ReleaseInfo(
         version: tagName.replaceFirst('v', ''),
-        downloadUrl:
-            downloadUrl ?? 'https://github.com/$_owner/$_repo/releases/latest',
+        downloadUrl: downloadUrl,
       );
     } catch (e, stack) {
       debugPrint('Update check error: $e');
       debugPrint('$stack');
       return null;
     }
+  }
+
+  static String? _pickApkDownloadUrl(List<dynamic>? assets) {
+    if (assets == null || assets.isEmpty) return null;
+
+    final apks = <Map<String, String>>[];
+    for (final asset in assets) {
+      if (asset is! Map) continue;
+      final name = asset['name'] as String?;
+      final url = asset['browser_download_url'] as String?;
+      if (name == null || url == null) continue;
+      if (!name.toLowerCase().endsWith('.apk')) continue;
+      apks.add({'name': name.toLowerCase(), 'url': url});
+    }
+
+    if (apks.isEmpty) return null;
+
+    const preferredAbis = ['arm64-v8a', 'armeabi-v7a', 'x86_64'];
+    for (final abi in preferredAbis) {
+      for (final apk in apks) {
+        if (apk['name']!.contains(abi)) return apk['url'];
+      }
+    }
+    return apks.first['url'];
   }
 
   static bool _isNewer(String latest, String current) {
@@ -124,15 +145,17 @@ class UpdateService {
           ),
           FilledButton(
             onPressed: () async {
-              final uri = Uri.parse(release.downloadUrl);
-              if (await canLaunchUrl(uri)) {
-                await launchUrl(uri, mode: LaunchMode.externalApplication);
-              } else {
+              try {
+                final uri = Uri.parse(release.downloadUrl);
+                final launched =
+                    await launchUrl(uri, mode: LaunchMode.externalApplication);
+                if (!launched && context.mounted) {
+                  _showSnack(context, l10n.downloadError);
+                }
+              } catch (e) {
+                debugPrint('Update download error: $e');
                 if (context.mounted) {
-                  _showSnack(
-                    context,
-                    AppLocalizations.of(context)!.updateError,
-                  );
+                  _showSnack(context, l10n.downloadError);
                 }
               }
               if (context.mounted) Navigator.pop(context);

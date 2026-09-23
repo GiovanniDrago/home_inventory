@@ -55,6 +55,7 @@
   "updateAvailable": "Aggiornamento Disponibile",
   "noUpdates": "Nessun aggiornamento disponibile",
   "updateError": "Impossibile controllare gli aggiornamenti",
+  "downloadError": "Impossibile aprire il download",
   "download": "Scarica",
   "later": "Piu tardi",
   "requiredField": "Questo campo e obbligatorio",

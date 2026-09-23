@@ -220,6 +220,10 @@
   "@updateError": {
     "description": "Update check error message"
   },
+  "downloadError": "Could not open the download",
+  "@downloadError": {
+    "description": "Error shown when the update download link cannot be opened"
+  },
   "download": "Download",
   "@download": {
     "description": "Download button"
