@@ -127,17 +127,15 @@ class SupabaseService {
   }
 
   static Future<List<Map<String, dynamic>>> searchHouses(String query) async {
-    final response = await _client
-        .from('houses')
-        .select('*, creator:profiles!houses_created_by_fkey(nickname, email)')
-        .ilike('name', '%$query%');
+    final response = await _client.rpc(
+      'search_houses',
+      params: {'p_query': query},
+    );
     return (response as List<dynamic>).map((e) {
       final map = Map<String, dynamic>.from(e as Map);
-      final creator = map['creator'] as Map?;
       return {
         'house': House.fromMap(map),
-        'creator_nickname': creator?['nickname'] as String? ?? 'Unknown',
-        'creator_email': creator?['email'] as String? ?? '',
+        'creator_nickname': map['creator_nickname'] as String? ?? 'Unknown',
       };
     }).toList();
   }
@@ -328,72 +326,32 @@ class SupabaseService {
   }
 
   // Invitations
-  static Future<Invitation> createInvitation({
-    required String fromUserId,
-    required String toEmail,
-    required String houseId,
-  }) async {
-    final data = {
-      'from_user_id': fromUserId,
-      'to_email': toEmail,
-      'house_id': houseId,
-      'status': 'pending',
-    };
-    final response = await _client.from('invitations').insert(data).select().single();
-    return Invitation.fromMap(response);
+  static Future<void> requestJoin(String houseId) async {
+    await _client.rpc(
+      'send_join_request',
+      params: {'p_house_id': houseId},
+    );
   }
 
-  static Future<List<Invitation>> getIncomingInvitations(String userId) async {
-    // Get houses created by this user, then invitations to those houses
-    final housesResponse = await _client.from('houses').select('id').eq('created_by', userId);
-    final houseIds = (housesResponse as List<dynamic>).map((e) => e['id'] as String).toList();
-    if (houseIds.isEmpty) return [];
-
-    final response = await _client
-        .from('invitations')
-        .select('*, profiles!invitations_from_user_id_fkey(nickname), houses(name)')
-        .inFilter('house_id', houseIds)
-        .eq('status', 'pending')
-        .order('created_at', ascending: false);
-
-    return (response as List<dynamic>).map((e) {
-      final map = Map<String, dynamic>.from(e as Map);
-      map['from_user_nickname'] = (map['profiles'] as Map?)?['nickname'];
-      map['house_name'] = (map['houses'] as Map?)?['name'];
-      return Invitation.fromMap(map);
-    }).toList();
+  static Future<List<Invitation>> getIncomingInvitations() async {
+    final response = await _client.rpc('get_incoming_invitations');
+    return (response as List<dynamic>)
+        .map((e) => Invitation.fromMap(Map<String, dynamic>.from(e as Map)))
+        .toList();
   }
 
-  static Future<List<Invitation>> getSentInvitations(String userId) async {
-    final response = await _client
-        .from('invitations')
-        .select('*, houses(name)')
-        .eq('from_user_id', userId)
-        .order('created_at', ascending: false);
-
-    return (response as List<dynamic>).map((e) {
-      final map = Map<String, dynamic>.from(e as Map);
-      map['house_name'] = (map['houses'] as Map?)?['name'];
-      return Invitation.fromMap(map);
-    }).toList();
+  static Future<List<Invitation>> getSentInvitations() async {
+    final response = await _client.rpc('get_sent_invitations');
+    return (response as List<dynamic>)
+        .map((e) => Invitation.fromMap(Map<String, dynamic>.from(e as Map)))
+        .toList();
   }
 
   static Future<void> respondToInvitation(String invitationId, String status) async {
-    await _client.from('invitations').update({
-      'status': status,
-      'updated_at': DateTime.now().toIso8601String(),
-    }).eq('id', invitationId);
-
-    if (status == 'accepted') {
-      final inv = await _client.from('invitations').select().eq('id', invitationId).single();
-      final invitation = Invitation.fromMap(inv);
-      // Find the profile by email and update house_id
-      final profiles = await _client.from('profiles').select().eq('email', invitation.toEmail);
-      if ((profiles as List).isNotEmpty) {
-        final profileId = profiles.first['id'] as String;
-        await _client.from('profiles').update({'house_id': invitation.houseId}).eq('id', profileId);
-      }
-    }
+    await _client.rpc(
+      status == 'accepted' ? 'accept_invitation' : 'reject_invitation',
+      params: {'p_invitation_id': invitationId},
+    );
   }
 
   // Realtime subscriptions

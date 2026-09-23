@@ -13,10 +13,10 @@ final sentInvitationsProvider = StateNotifierProvider<SentInvitationsNotifier, A
 class InvitationsNotifier extends StateNotifier<AsyncValue<List<Invitation>>> {
   InvitationsNotifier() : super(const AsyncValue.data([]));
 
-  Future<void> loadInvitations(String userId) async {
+  Future<void> loadInvitations() async {
     state = const AsyncValue.loading();
     try {
-      final invitations = await SupabaseService.getIncomingInvitations(userId);
+      final invitations = await SupabaseService.getIncomingInvitations();
       state = AsyncValue.data(invitations);
     } catch (e, st) {
       state = AsyncValue.error(e, st);
@@ -37,29 +37,11 @@ class InvitationsNotifier extends StateNotifier<AsyncValue<List<Invitation>>> {
 class SentInvitationsNotifier extends StateNotifier<AsyncValue<List<Invitation>>> {
   SentInvitationsNotifier() : super(const AsyncValue.data([]));
 
-  Future<void> loadSentInvitations(String userId) async {
+  Future<void> loadSentInvitations() async {
     state = const AsyncValue.loading();
     try {
-      final invitations = await SupabaseService.getSentInvitations(userId);
+      final invitations = await SupabaseService.getSentInvitations();
       state = AsyncValue.data(invitations);
-    } catch (e, st) {
-      state = AsyncValue.error(e, st);
-    }
-  }
-
-  Future<void> sendInvitation({
-    required String fromUserId,
-    required String toEmail,
-    required String houseId,
-  }) async {
-    try {
-      final invitation = await SupabaseService.createInvitation(
-        fromUserId: fromUserId,
-        toEmail: toEmail,
-        houseId: houseId,
-      );
-      final current = state.value ?? [];
-      state = AsyncValue.data([invitation, ...current]);
     } catch (e, st) {
       state = AsyncValue.error(e, st);
     }

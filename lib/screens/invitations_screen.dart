@@ -3,7 +3,6 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:home_inventory/l10n/app_localizations.dart';
 
 import '../providers/invitations_provider.dart';
-import '../providers/auth_provider.dart';
 
 class InvitationsScreen extends ConsumerStatefulWidget {
   const InvitationsScreen({super.key});
@@ -17,11 +16,8 @@ class _InvitationsScreenState extends ConsumerState<InvitationsScreen> {
   void initState() {
     super.initState();
     Future.microtask(() {
-      final userId = ref.read(authStateProvider).value?.session?.user.id;
-      if (userId != null) {
-        ref.read(invitationsProvider.notifier).loadInvitations(userId);
-        ref.read(sentInvitationsProvider.notifier).loadSentInvitations(userId);
-      }
+      ref.read(invitationsProvider.notifier).loadInvitations();
+      ref.read(sentInvitationsProvider.notifier).loadSentInvitations();
     });
   }
 

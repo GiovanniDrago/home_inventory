@@ -88,15 +88,9 @@ class _HouseOnboardingScreenState extends ConsumerState<HouseOnboardingScreen> {
   Future<void> _requestJoin(Map<String, dynamic> result) async {
     setState(() => _isLoading = true);
     try {
-      final userId = SupabaseService.currentUserId!;
       final house = result['house'] as House;
-      final creatorEmail = result['creator_email'] as String;
-      
-      await SupabaseService.createInvitation(
-        fromUserId: userId,
-        toEmail: creatorEmail,
-        houseId: house.id,
-      );
+
+      await SupabaseService.requestJoin(house.id);
 
       final l10n = AppLocalizations.of(context)!;
       if (mounted) {
