@@ -56,6 +56,10 @@
   "@productName": {
     "description": "Product name field label"
   },
+  "lookupError": "Could not reach the product database. Check your connection and try again.",
+  "@lookupError": {
+    "description": "Shown when the barcode lookup fails because of a network error"
+  },
   "brand": "Brand",
   "@brand": {
     "description": "Brand field label"

@@ -123,57 +123,65 @@ class _ProductFormScreenState extends ConsumerState<ProductFormScreen> {
 
     setState(() => _isScanning = true);
 
-    final scanned = await ProductLookupService.lookupBarcode(barcode);
+    final result = await ProductLookupService.lookupBarcode(barcode);
 
     setState(() => _isScanning = false);
 
-    if (scanned == null) {
-      if (mounted) {
-        final shouldContribute = await showDialog<bool>(
-          context: context,
-          builder: (context) => AlertDialog(
-            title: const Text('Product Not Found'),
-            content: const Text(
-              'This product is not in the database yet. Would you like to add it?',
+    if (!mounted) return;
+
+    if (result.status == ProductLookupStatus.error) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text(AppLocalizations.of(context)!.lookupError)),
+      );
+      return;
+    }
+
+    if (result.status == ProductLookupStatus.notFound) {
+      final shouldContribute = await showDialog<bool>(
+        context: context,
+        builder: (context) => AlertDialog(
+          title: const Text('Product Not Found'),
+          content: const Text(
+            'This product is not in the database yet. Would you like to add it?',
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.of(context).pop(false),
+              child: const Text('Enter Manually'),
             ),
-            actions: [
-              TextButton(
-                onPressed: () => Navigator.of(context).pop(false),
-                child: const Text('Enter Manually'),
-              ),
-              FilledButton(
-                onPressed: () => Navigator.of(context).pop(true),
-                child: const Text('Add Missing Product'),
-              ),
-            ],
+            FilledButton(
+              onPressed: () => Navigator.of(context).pop(true),
+              child: const Text('Add Missing Product'),
+            ),
+          ],
+        ),
+      );
+
+      if (shouldContribute == true && mounted) {
+        final contributionResult = await Navigator.of(context).push<Map<String, dynamic>>(
+          MaterialPageRoute(
+            builder: (_) => ProductContributionScreen(barcode: barcode),
           ),
         );
 
-        if (shouldContribute == true) {
-          final contributionResult = await Navigator.of(context).push<Map<String, dynamic>>(
-            MaterialPageRoute(
-              builder: (_) => ProductContributionScreen(barcode: barcode),
-            ),
+        if (contributionResult != null && mounted) {
+          setState(() {
+            _nameController.text = contributionResult['name']?.toString() ?? '';
+            _brandController.text = contributionResult['brand']?.toString() ?? '';
+            final qty = contributionResult['quantity'];
+            if (qty != null) {
+              _quantityController.text = qty.toString();
+            }
+          });
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(content: Text('Product added! Data prefilled from your contribution.')),
           );
-
-          if (contributionResult != null && mounted) {
-            setState(() {
-              _nameController.text = contributionResult['name']?.toString() ?? '';
-              _brandController.text = contributionResult['brand']?.toString() ?? '';
-              final qty = contributionResult['quantity'];
-              if (qty != null) {
-                _quantityController.text = qty.toString();
-              }
-            });
-            ScaffoldMessenger.of(context).showSnackBar(
-              const SnackBar(content: Text('Product added! Data prefilled from your contribution.')),
-            );
-          }
         }
       }
       return;
     }
 
+    final scanned = result.product!;
     setState(() {
       if (scanned.name != null && scanned.name!.isNotEmpty) {
         _nameController.text = scanned.name!;
@@ -186,15 +194,13 @@ class _ProductFormScreenState extends ConsumerState<ProductFormScreen> {
       }
     });
 
-    if (mounted) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text(
-            'Scanned: ${scanned.name ?? 'Unknown'}${scanned.rawQuantity != null ? ' (${scanned.rawQuantity})' : ''}',
-          ),
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text(
+          'Scanned: ${scanned.name ?? 'Unknown'}${scanned.rawQuantity != null ? ' (${scanned.rawQuantity})' : ''}',
         ),
-      );
-    }
+      ),
+    );
   }
 
   @override

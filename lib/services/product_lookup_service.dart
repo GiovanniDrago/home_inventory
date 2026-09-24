@@ -13,15 +13,39 @@ class ScannedProduct {
   ScannedProduct({this.name, this.brand, this.quantity, this.rawQuantity});
 }
 
+enum ProductLookupStatus { found, notFound, error }
+
+class ProductLookupResult {
+  final ProductLookupStatus status;
+  final ScannedProduct? product;
+
+  const ProductLookupResult._(this.status, this.product);
+
+  const ProductLookupResult.found(ScannedProduct product)
+      : this._(ProductLookupStatus.found, product);
+
+  const ProductLookupResult.notFound()
+      : this._(ProductLookupStatus.notFound, null);
+
+  const ProductLookupResult.error()
+      : this._(ProductLookupStatus.error, null);
+}
+
 class ProductLookupService {
   static const String _opfBaseUrl = 'https://world.openproductsfacts.org/api/v2/product';
   static const String _offBaseUrl = 'https://world.openfoodfacts.org/api/v2/product';
   static const String _fields = 'code,product_name,brands,quantity';
+  static const Duration _timeout = Duration(seconds: 12);
+  static const Duration _retryDelay = Duration(milliseconds: 400);
 
   /// Lookup barcode across two databases:
   /// 1. Open Products Facts (general products, household items)
   /// 2. Open Food Facts (food, fallback)
-  static Future<ScannedProduct?> lookupBarcode(String barcode) async {
+  ///
+  /// Returns [ProductLookupStatus.notFound] only when both databases answered
+  /// that the product is absent; if a database could not be reached the result
+  /// is [ProductLookupStatus.error].
+  static Future<ProductLookupResult> lookupBarcode(String barcode) async {
     final userAgent = await _userAgent();
 
     // Try Open Products Facts first (household products)
@@ -29,13 +53,21 @@ class ProductLookupService {
       '$_opfBaseUrl/$barcode.json?fields=$_fields',
       userAgent: userAgent,
     );
-    if (opfResult != null) return opfResult;
+    if (opfResult.status == ProductLookupStatus.found) return opfResult;
 
     // Fallback to Open Food Facts
-    return _lookup(
+    final offResult = await _lookup(
       '$_offBaseUrl/$barcode.json?fields=$_fields',
       userAgent: userAgent,
     );
+    if (offResult.status == ProductLookupStatus.found) return offResult;
+
+    // A network problem must not be reported as a missing product.
+    if (opfResult.status == ProductLookupStatus.error ||
+        offResult.status == ProductLookupStatus.error) {
+      return const ProductLookupResult.error();
+    }
+    return const ProductLookupResult.notFound();
   }
 
   static Future<String> _userAgent() async {
@@ -49,23 +81,43 @@ class ProductLookupService {
     }
   }
 
-  static Future<ScannedProduct?> _lookup(String url, {required String userAgent}) async {
+  static Future<ProductLookupResult> _lookup(
+    String url, {
+    required String userAgent,
+  }) async {
+    final firstAttempt = await _request(url, userAgent: userAgent);
+    if (firstAttempt.status != ProductLookupStatus.error) return firstAttempt;
+
+    await Future.delayed(_retryDelay);
+    return _request(url, userAgent: userAgent);
+  }
+
+  static Future<ProductLookupResult> _request(
+    String url, {
+    required String userAgent,
+  }) async {
     try {
       final response = await http.get(
         Uri.parse(url),
         headers: {
           'User-Agent': userAgent,
         },
-      ).timeout(const Duration(seconds: 8));
+      ).timeout(_timeout);
 
-      if (response.statusCode != 200) return null;
+      if (response.statusCode == 404) {
+        return const ProductLookupResult.notFound();
+      }
+      if (response.statusCode != 200) {
+        return const ProductLookupResult.error();
+      }
 
       final data = jsonDecode(response.body) as Map<String, dynamic>;
 
-      // Both APIs return { product: { ... } }
-      if (data['product'] == null) return null;
-
-      final product = data['product'] as Map<String, dynamic>;
+      // Both APIs return { status, product: { ... } }
+      final product = data['product'];
+      if (data['status'] == 0 || product is! Map) {
+        return const ProductLookupResult.notFound();
+      }
 
       final rawName = product['product_name'] as String?;
       final rawBrands = product['brands'] as String?;
@@ -77,14 +129,14 @@ class ProductLookupService {
       // Parse quantity: extract number from "400 g" or "750 ml"
       final parsedQuantity = _parseQuantity(rawQuantity);
 
-      return ScannedProduct(
+      return ProductLookupResult.found(ScannedProduct(
         name: rawName,
         brand: brand,
         quantity: parsedQuantity,
         rawQuantity: rawQuantity,
-      );
+      ));
     } catch (e) {
-      return null;
+      return const ProductLookupResult.error();
     }
   }
 
