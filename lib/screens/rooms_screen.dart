@@ -45,7 +45,7 @@ class RoomsScreen extends ConsumerWidget {
             if (newIndex > oldIndex) newIndex -= 1;
             ref.read(roomsProvider.notifier).reorderRooms(oldIndex, newIndex);
           },
-          footer: const _AddRoomCard(),
+          footer: _AddRoomCard(),
           itemBuilder: (context, index) {
             final room = rooms[index];
             return _RoomCard(key: ValueKey(room.id), room: room);
