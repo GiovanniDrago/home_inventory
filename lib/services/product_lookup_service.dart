@@ -7,10 +7,23 @@ import '../config.dart';
 class ScannedProduct {
   final String? name;
   final String? brand;
-  final int? quantity;
   final String? rawQuantity;
 
-  ScannedProduct({this.name, this.brand, this.quantity, this.rawQuantity});
+  /// Multi-pack count parsed from the quantity string (e.g. 6 for "6 x 330 ml").
+  final int? quantity;
+
+  /// Package format parsed from the quantity string (e.g. 330 + "ml").
+  final double? formatValue;
+  final String? formatUnit;
+
+  ScannedProduct({
+    this.name,
+    this.brand,
+    this.rawQuantity,
+    this.quantity,
+    this.formatValue,
+    this.formatUnit,
+  });
 }
 
 enum ProductLookupStatus { found, notFound, error }
@@ -19,10 +32,13 @@ class ProductLookupResult {
   final ProductLookupStatus status;
   final ScannedProduct? product;
 
-  const ProductLookupResult._(this.status, this.product);
+  /// True when the product was found in Open Food Facts (food database).
+  final bool isFood;
 
-  const ProductLookupResult.found(ScannedProduct product)
-      : this._(ProductLookupStatus.found, product);
+  const ProductLookupResult._(this.status, this.product, {this.isFood = false});
+
+  const ProductLookupResult.found(ScannedProduct product, {bool isFood = false})
+      : this._(ProductLookupStatus.found, product, isFood: isFood);
 
   const ProductLookupResult.notFound()
       : this._(ProductLookupStatus.notFound, null);
@@ -55,12 +71,14 @@ class ProductLookupService {
     );
     if (opfResult.status == ProductLookupStatus.found) return opfResult;
 
-    // Fallback to Open Food Facts
+    // Fallback to Open Food Facts (food)
     final offResult = await _lookup(
       '$_offBaseUrl/$barcode.json?fields=$_fields',
       userAgent: userAgent,
     );
-    if (offResult.status == ProductLookupStatus.found) return offResult;
+    if (offResult.status == ProductLookupStatus.found) {
+      return ProductLookupResult.found(offResult.product!, isFood: true);
+    }
 
     // A network problem must not be reported as a missing product.
     if (opfResult.status == ProductLookupStatus.error ||
@@ -126,14 +144,16 @@ class ProductLookupService {
       // Clean up brands: take only the first one
       final brand = _extractFirstBrand(rawBrands);
 
-      // Parse quantity: extract number from "400 g" or "750 ml"
-      final parsedQuantity = _parseQuantity(rawQuantity);
+      // Parse the package format: number + unit (e.g. "600 g", "1.5 l")
+      final parsed = _parseQuantityAndFormat(rawQuantity);
 
       return ProductLookupResult.found(ScannedProduct(
         name: rawName,
         brand: brand,
-        quantity: parsedQuantity,
         rawQuantity: rawQuantity,
+        quantity: parsed.count,
+        formatValue: parsed.value,
+        formatUnit: parsed.unit,
       ));
     } catch (e) {
       return const ProductLookupResult.error();
@@ -146,14 +166,67 @@ class ProductLookupService {
     return brands.split(',').first.trim();
   }
 
-  static int? _parseQuantity(String? quantityStr) {
-    if (quantityStr == null || quantityStr.isEmpty) return null;
-    // Try to extract the first number from strings like "400 g", "750 ml", "1.5 L"
-    final match = RegExp(r'(\d+(?:[.,]\d+)?)').firstMatch(quantityStr);
-    if (match == null) return null;
-    final numberStr = match.group(1)!.replaceAll(',', '.');
-    final value = double.tryParse(numberStr);
-    if (value == null) return null;
-    return value.round();
+  static ({int? count, double? value, String? unit}) _parseQuantityAndFormat(
+    String? quantityStr,
+  ) {
+    if (quantityStr == null || quantityStr.isEmpty) {
+      return (count: null, value: null, unit: null);
+    }
+
+    final matches = RegExp(r'(\d+(?:[.,]\d+)?)\s*([a-zA-Z]+)')
+        .allMatches(quantityStr)
+        .map((match) {
+          final number = double.tryParse(match.group(1)!.replaceAll(',', '.'));
+          final unit = _normalizeUnit(match.group(2)!);
+          return (number: number, unit: unit);
+        })
+        .where((pair) => pair.number != null && pair.unit != null)
+        .toList();
+
+    if (matches.isEmpty) return (count: null, value: null, unit: null);
+
+    final isMultiPack =
+        RegExp(r'\d\s*[x×]\s*\d', caseSensitive: false).hasMatch(quantityStr);
+
+    if (isMultiPack && matches.length >= 2) {
+      final count = matches.first.number!.round();
+      final last = matches.last;
+      return (count: count > 0 ? count : null, value: last.number, unit: last.unit);
+    }
+
+    final last = matches.last;
+    return (count: null, value: last.number, unit: last.unit);
+  }
+
+  static String? _normalizeUnit(String raw) {
+    switch (raw.toLowerCase()) {
+      case 'g':
+      case 'gr':
+      case 'grammi':
+      case 'grammo':
+        return 'g';
+      case 'kg':
+      case 'chilogrammi':
+      case 'chilo':
+      case 'chili':
+        return 'kg';
+      case 'ml':
+      case 'millilitri':
+        return 'ml';
+      case 'cl':
+      case 'centilitri':
+        return 'cl';
+      case 'l':
+      case 'lt':
+      case 'litri':
+      case 'litro':
+        return 'l';
+      case 'pz':
+      case 'pezzi':
+      case 'pezzo':
+        return 'pz';
+      default:
+        return null;
+    }
   }
 }

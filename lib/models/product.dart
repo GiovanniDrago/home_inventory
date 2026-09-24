@@ -1,9 +1,13 @@
+import 'package:intl/intl.dart';
+
 class Product {
   final String id;
   final String name;
   final String? brand;
   final String? note;
   final int quantity;
+  final double? formatValue;
+  final String? formatUnit;
   final double? price;
   final String roomId;
   final String? categoryId;
@@ -18,6 +22,8 @@ class Product {
     this.brand,
     this.note,
     required this.quantity,
+    this.formatValue,
+    this.formatUnit,
     this.price,
     required this.roomId,
     this.categoryId,
@@ -34,6 +40,9 @@ class Product {
       brand: map['brand'] as String?,
       note: map['note'] as String?,
       quantity: map['quantity'] as int,
+      formatValue:
+          map['format_value'] != null ? (map['format_value'] as num).toDouble() : null,
+      formatUnit: map['format_unit'] as String?,
       price: map['price'] != null ? (map['price'] as num).toDouble() : null,
       roomId: map['room_id'] as String,
       categoryId: map['category_id'] as String?,
@@ -51,6 +60,8 @@ class Product {
       'brand': brand,
       'note': note,
       'quantity': quantity,
+      'format_value': formatValue,
+      'format_unit': formatUnit,
       'price': price,
       'room_id': roomId,
       'category_id': categoryId,
@@ -61,12 +72,27 @@ class Product {
     };
   }
 
+  /// Package format (e.g. "500 g" or "1,5 l") formatted for the given locale.
+  String? formatLabel(String localeName) {
+    if (formatValue == null || formatUnit == null) return null;
+    final value = formatValue!;
+    String formatted;
+    try {
+      formatted = NumberFormat.decimalPattern(localeName).format(value);
+    } catch (_) {
+      formatted = value.toString();
+    }
+    return '$formatted $formatUnit';
+  }
+
   Product copyWith({
     String? id,
     String? name,
     String? brand,
     String? note,
     int? quantity,
+    double? formatValue,
+    String? formatUnit,
     double? price,
     String? roomId,
     String? categoryId,
@@ -81,6 +107,8 @@ class Product {
       brand: brand ?? this.brand,
       note: note ?? this.note,
       quantity: quantity ?? this.quantity,
+      formatValue: formatValue ?? this.formatValue,
+      formatUnit: formatUnit ?? this.formatUnit,
       price: price ?? this.price,
       roomId: roomId ?? this.roomId,
       categoryId: categoryId ?? this.categoryId,

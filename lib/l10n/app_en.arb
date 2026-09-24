@@ -76,6 +76,18 @@
   "@price": {
     "description": "Price field label"
   },
+  "formatLabel": "Format",
+  "@formatLabel": {
+    "description": "Package format value field label"
+  },
+  "unitLabel": "Unit",
+  "@unitLabel": {
+    "description": "Package format unit dropdown label"
+  },
+  "invalidNumber": "Invalid number",
+  "@invalidNumber": {
+    "description": "Validation error for a non-numeric value"
+  },
   "category": "Category",
   "@category": {
     "description": "Category field label"

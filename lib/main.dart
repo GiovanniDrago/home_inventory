@@ -7,6 +7,7 @@ import 'providers/auth_provider.dart';
 import 'providers/categories_provider.dart';
 import 'providers/house_provider.dart';
 import 'providers/locale_provider.dart';
+import 'providers/products_provider.dart';
 import 'providers/rooms_provider.dart';
 import 'providers/theme_provider.dart';
 import 'services/supabase_service.dart';
@@ -61,6 +62,7 @@ class _MyAppState extends ConsumerState<MyApp> with WidgetsBindingObserver {
     await ref.read(houseProvider.notifier).loadHouse(houseId);
     await ref.read(roomsProvider.notifier).loadRooms(houseId);
     await ref.read(categoriesProvider.notifier).loadCategories(houseId);
+    await ref.read(productsProvider.notifier).loadProducts(houseId);
 
     _navigatorKey.currentState?.pushReplacement(
       MaterialPageRoute(builder: (_) => const MainShell()),

@@ -12,10 +12,10 @@ final selectedCategoryFiltersProvider = StateProvider<Set<String>>((ref) => {});
 class ProductsNotifier extends StateNotifier<AsyncValue<List<Product>>> {
   ProductsNotifier() : super(const AsyncValue.data([]));
 
-  Future<void> loadProducts(String houseId, {String? roomId}) async {
+  Future<void> loadProducts(String houseId) async {
     state = const AsyncValue.loading();
     try {
-      final products = await SupabaseService.getProducts(houseId, roomId: roomId);
+      final products = await SupabaseService.getProducts(houseId);
       state = AsyncValue.data(products);
     } catch (e, st) {
       state = AsyncValue.error(e, st);
@@ -27,6 +27,8 @@ class ProductsNotifier extends StateNotifier<AsyncValue<List<Product>>> {
     String? brand,
     String? note,
     required int quantity,
+    double? formatValue,
+    String? formatUnit,
     double? price,
     required String roomId,
     String? categoryId,
@@ -38,6 +40,8 @@ class ProductsNotifier extends StateNotifier<AsyncValue<List<Product>>> {
         brand: brand,
         note: note,
         quantity: quantity,
+        formatValue: formatValue,
+        formatUnit: formatUnit,
         price: price,
         roomId: roomId,
         categoryId: categoryId,
@@ -55,6 +59,8 @@ class ProductsNotifier extends StateNotifier<AsyncValue<List<Product>>> {
     String? brand,
     String? note,
     int? quantity,
+    double? formatValue,
+    String? formatUnit,
     double? price,
     String? roomId,
     String? categoryId,
@@ -66,6 +72,8 @@ class ProductsNotifier extends StateNotifier<AsyncValue<List<Product>>> {
         brand: brand,
         note: note,
         quantity: quantity,
+        formatValue: formatValue,
+        formatUnit: formatUnit,
         price: price,
         roomId: roomId,
         categoryId: categoryId,
@@ -79,6 +87,8 @@ class ProductsNotifier extends StateNotifier<AsyncValue<List<Product>>> {
               brand: brand ?? p.brand,
               note: note ?? p.note,
               quantity: quantity ?? p.quantity,
+              formatValue: formatValue ?? p.formatValue,
+              formatUnit: formatUnit ?? p.formatUnit,
               price: price ?? p.price,
               roomId: roomId ?? p.roomId,
               categoryId: categoryId ?? p.categoryId,

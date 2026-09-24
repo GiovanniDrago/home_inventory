@@ -28,13 +28,10 @@ class _RoomDetailScreenState extends ConsumerState<RoomDetailScreen> {
   void initState() {
     super.initState();
     _nameController.text = widget.room.name;
-    // Load products for this room
+    // Load all house products (room filtering happens in the build)
     Future.microtask(() {
       ref.read(currentRoomIdProvider.notifier).state = widget.room.id;
-      ref.read(productsProvider.notifier).loadProducts(
-            widget.room.houseId,
-            roomId: widget.room.id,
-          );
+      ref.read(productsProvider.notifier).loadProducts(widget.room.houseId);
       ref.read(categoriesProvider.notifier).loadCategories(widget.room.houseId);
     });
   }
@@ -173,7 +170,11 @@ class _RoomDetailScreenState extends ConsumerState<RoomDetailScreen> {
           Expanded(
             child: productsAsync.when(
               data: (products) {
-                if (products.isEmpty) {
+                final roomProducts = products
+                    .where((p) => p.roomId == widget.room.id)
+                    .toList();
+
+                if (roomProducts.isEmpty) {
                   return Center(
                     child: Column(
                       mainAxisAlignment: MainAxisAlignment.center,
@@ -195,9 +196,12 @@ class _RoomDetailScreenState extends ConsumerState<RoomDetailScreen> {
 
                 return ListView.builder(
                   padding: const EdgeInsets.all(16),
-                  itemCount: products.length,
+                  itemCount: roomProducts.length,
                   itemBuilder: (context, index) {
-                    final product = products[index];
+                    final product = roomProducts[index];
+                    final formatLabel = product.formatLabel(
+                      Localizations.localeOf(context).toString(),
+                    );
                     return Card(
                       margin: const EdgeInsets.only(bottom: 12),
                       child: ListTile(
@@ -238,9 +242,18 @@ class _RoomDetailScreenState extends ConsumerState<RoomDetailScreen> {
                                   fontSize: 12,
                                 ),
                               ),
+                            if (formatLabel != null)
+                              Text(
+                                formatLabel,
+                                style: TextStyle(
+                                  color: Theme.of(context).colorScheme.onSurfaceVariant,
+                                  fontSize: 12,
+                                ),
+                              ),
                           ],
                         ),
-                        isThreeLine: product.price != null && product.brand != null,
+                        isThreeLine: (product.price != null && product.brand != null) ||
+                            formatLabel != null,
                         onTap: () {
                           Navigator.of(context).push(
                             MaterialPageRoute(

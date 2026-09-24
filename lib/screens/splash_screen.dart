@@ -4,6 +4,7 @@ import 'package:supabase_flutter/supabase_flutter.dart';
 
 import '../providers/auth_provider.dart';
 import '../providers/house_provider.dart';
+import '../providers/products_provider.dart';
 import '../providers/rooms_provider.dart';
 import '../providers/categories_provider.dart';
 import '../services/supabase_service.dart';
@@ -53,6 +54,7 @@ class _SplashScreenState extends ConsumerState<SplashScreen> {
         await ref.read(houseProvider.notifier).loadHouse(profile!.houseId);
         await ref.read(roomsProvider.notifier).loadRooms(profile.houseId!);
         await ref.read(categoriesProvider.notifier).loadCategories(profile.houseId!);
+        await ref.read(productsProvider.notifier).loadProducts(profile.houseId!);
         if (mounted) {
           Navigator.of(context).pushReplacement(
             MaterialPageRoute(builder: (_) => const MainShell()),

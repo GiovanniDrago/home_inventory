@@ -60,6 +60,12 @@ class _ProductDetailScreenState extends ConsumerState<ProductDetailScreen> {
                   if (currentProduct.brand != null)
                     _DetailItem(icon: Icons.branding_watermark_outlined, label: l10n.brand, value: currentProduct.brand!),
                   _DetailItem(icon: Icons.numbers_outlined, label: l10n.quantity, value: currentProduct.quantity.toString()),
+                  if (currentProduct.formatLabel(Localizations.localeOf(context).toString()) != null)
+                    _DetailItem(
+                      icon: Icons.straighten_outlined,
+                      label: l10n.formatLabel,
+                      value: currentProduct.formatLabel(Localizations.localeOf(context).toString())!,
+                    ),
                   if (currentProduct.price != null)
                     _DetailItem(
                       icon: Icons.attach_money_outlined,

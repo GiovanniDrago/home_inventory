@@ -256,6 +256,8 @@ class SupabaseService {
     String? brand,
     String? note,
     required int quantity,
+    double? formatValue,
+    String? formatUnit,
     double? price,
     required String roomId,
     String? categoryId,
@@ -266,6 +268,8 @@ class SupabaseService {
       'brand': brand,
       'note': note,
       'quantity': quantity,
+      'format_value': formatValue,
+      'format_unit': formatUnit,
       'price': price,
       'room_id': roomId,
       'category_id': categoryId,
@@ -283,6 +287,8 @@ class SupabaseService {
     String? brand,
     String? note,
     int? quantity,
+    double? formatValue,
+    String? formatUnit,
     double? price,
     String? roomId,
     String? categoryId,
@@ -292,6 +298,8 @@ class SupabaseService {
     if (brand != null) data['brand'] = brand;
     if (note != null) data['note'] = note;
     if (quantity != null) data['quantity'] = quantity;
+    if (formatValue != null) data['format_value'] = formatValue;
+    if (formatUnit != null) data['format_unit'] = formatUnit;
     if (price != null) data['price'] = price;
     if (roomId != null) data['room_id'] = roomId;
     if (categoryId != null) data['category_id'] = categoryId;

@@ -71,10 +71,6 @@ class _RoomCard extends ConsumerWidget {
       child: InkWell(
         onTap: () {
           ref.read(currentRoomIdProvider.notifier).state = room.id;
-          ref.read(productsProvider.notifier).loadProducts(
-                room.houseId,
-                roomId: room.id,
-              );
           Navigator.of(context).push(
             MaterialPageRoute(
               builder: (_) => RoomDetailScreen(room: room),

@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:intl/intl.dart';
 import 'package:home_inventory/l10n/app_localizations.dart';
 
 import '../models/product.dart';
@@ -28,10 +29,13 @@ class _ProductFormScreenState extends ConsumerState<ProductFormScreen> {
   final _brandController = TextEditingController();
   final _noteController = TextEditingController();
   final _quantityController = TextEditingController(text: '1');
+  final _formatValueController = TextEditingController();
   final _priceController = TextEditingController();
   String? _selectedRoomId;
   String? _selectedCategoryId;
+  String? _selectedFormatUnit;
   bool _isScanning = false;
+  bool _formatTextInitialized = false;
 
   @override
   void initState() {
@@ -47,6 +51,7 @@ class _ProductFormScreenState extends ConsumerState<ProductFormScreen> {
       }
       _selectedRoomId = product.roomId;
       _selectedCategoryId = product.categoryId;
+      _selectedFormatUnit = product.formatUnit;
     } else {
       // For new product, determine room preselection
       final currentRoomId = ref.read(currentRoomIdProvider);
@@ -56,6 +61,27 @@ class _ProductFormScreenState extends ConsumerState<ProductFormScreen> {
       } else if (currentRoomId != null) {
         _selectedRoomId = currentRoomId;
       }
+    }
+  }
+
+  @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    if (!_formatTextInitialized) {
+      _formatTextInitialized = true;
+      final value = widget.product?.formatValue;
+      if (value != null) {
+        _formatValueController.text = _formatNumber(value);
+      }
+    }
+  }
+
+  String _formatNumber(double value) {
+    try {
+      final locale = Localizations.localeOf(context).toString();
+      return NumberFormat.decimalPattern(locale).format(value);
+    } catch (_) {
+      return value.toString();
     }
   }
 
@@ -76,6 +102,10 @@ class _ProductFormScreenState extends ConsumerState<ProductFormScreen> {
     final brand = _brandController.text.trim().isEmpty ? null : _brandController.text.trim();
     final note = _noteController.text.trim().isEmpty ? null : _noteController.text.trim();
     final quantity = int.tryParse(_quantityController.text) ?? 1;
+    final formatText = _formatValueController.text.trim();
+    final formatValue =
+        formatText.isEmpty ? null : double.tryParse(formatText.replaceAll(',', '.'));
+    final formatUnit = formatValue == null ? null : _selectedFormatUnit;
     final price = _priceController.text.isEmpty
         ? null
         : double.tryParse(_priceController.text.replaceAll(',', '.'));
@@ -88,6 +118,8 @@ class _ProductFormScreenState extends ConsumerState<ProductFormScreen> {
             brand: brand,
             note: note,
             quantity: quantity,
+            formatValue: formatValue,
+            formatUnit: formatUnit,
             price: price,
             roomId: _selectedRoomId,
             categoryId: _selectedCategoryId,
@@ -101,6 +133,8 @@ class _ProductFormScreenState extends ConsumerState<ProductFormScreen> {
             brand: brand,
             note: note,
             quantity: quantity,
+            formatValue: formatValue,
+            formatUnit: formatUnit,
             price: price,
             roomId: _selectedRoomId!,
             categoryId: _selectedCategoryId,
@@ -191,6 +225,20 @@ class _ProductFormScreenState extends ConsumerState<ProductFormScreen> {
       }
       if (scanned.quantity != null && scanned.quantity! > 0) {
         _quantityController.text = scanned.quantity!.toString();
+      }
+      if (scanned.formatValue != null && scanned.formatUnit != null) {
+        _formatValueController.text = _formatNumber(scanned.formatValue!);
+        _selectedFormatUnit = scanned.formatUnit;
+      }
+      if (result.isFood) {
+        final categories = ref.read(categoriesProvider).value ?? [];
+        for (final category in categories) {
+          final categoryName = category.name.toLowerCase();
+          if (categoryName == 'cibo' || categoryName == 'food') {
+            _selectedCategoryId = category.id;
+            break;
+          }
+        }
       }
     });
 
@@ -287,7 +335,7 @@ class _ProductFormScreenState extends ConsumerState<ProductFormScreen> {
                 ),
               ),
               const SizedBox(height: 16),
-              // Quantity and Price row
+              // Quantity and package format row
               Row(
                 children: [
                   Expanded(
@@ -308,6 +356,57 @@ class _ProductFormScreenState extends ConsumerState<ProductFormScreen> {
                         }
                         return null;
                       },
+                    ),
+                  ),
+                  const SizedBox(width: 16),
+                  Expanded(
+                    child: TextFormField(
+                      controller: _formatValueController,
+                      decoration: InputDecoration(
+                        labelText: l10n.formatLabel,
+                        prefixIcon: const Icon(Icons.straighten_outlined),
+                      ),
+                      keyboardType: const TextInputType.numberWithOptions(decimal: true),
+                      validator: (value) {
+                        final text = value?.trim() ?? '';
+                        if (text.isEmpty) return null;
+                        if (_selectedFormatUnit == null) {
+                          return l10n.requiredField;
+                        }
+                        final parsed = double.tryParse(text.replaceAll(',', '.'));
+                        if (parsed == null || parsed <= 0) {
+                          return l10n.invalidNumber;
+                        }
+                        return null;
+                      },
+                    ),
+                  ),
+                ],
+              ),
+              const SizedBox(height: 16),
+              // Format unit and price row
+              Row(
+                children: [
+                  Expanded(
+                    child: DropdownButtonFormField<String>(
+                      value: _selectedFormatUnit,
+                      decoration: InputDecoration(
+                        labelText: l10n.unitLabel,
+                        prefixIcon: const Icon(Icons.straighten),
+                      ),
+                      items: [
+                        const DropdownMenuItem(
+                          value: null,
+                          child: Text('—'),
+                        ),
+                        ...['pz', 'g', 'kg', 'ml', 'cl', 'l'].map(
+                          (unit) => DropdownMenuItem(
+                            value: unit,
+                            child: Text(unit),
+                          ),
+                        ),
+                      ],
+                      onChanged: (value) => setState(() => _selectedFormatUnit = value),
                     ),
                   ),
                   const SizedBox(width: 16),
@@ -399,6 +498,7 @@ class _ProductFormScreenState extends ConsumerState<ProductFormScreen> {
     _brandController.dispose();
     _noteController.dispose();
     _quantityController.dispose();
+    _formatValueController.dispose();
     _priceController.dispose();
     super.dispose();
   }
