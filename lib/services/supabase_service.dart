@@ -230,6 +230,7 @@ class SupabaseService {
       {'name': 'Prodotti per la cura dei tessuti', 'description': 'Prodotti per tessuti e stoffe'},
       {'name': 'Prodotti per l\'igiene personale', 'description': 'Prodotti per l\'igiene quotidiana'},
       {'name': 'Prodotti per il giardino', 'description': 'Prodotti per la cura del giardino'},
+      {'name': 'Cibo', 'description': 'Alimenti e bevande'},
       {'name': 'Altro', 'description': 'Altre categorie'},
     ];
     for (final cat in defaults) {

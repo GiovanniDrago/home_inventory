@@ -1,5 +1,8 @@
 import 'dart:convert';
 import 'package:http/http.dart' as http;
+import 'package:package_info_plus/package_info_plus.dart';
+
+import '../config.dart';
 
 class ScannedProduct {
   final String? name;
@@ -11,34 +14,47 @@ class ScannedProduct {
 }
 
 class ProductLookupService {
-  static const String _opfBaseUrl = 'https://world.openproductsfacts.org/api/v0/product';
-  static const String _offBaseUrl = 'https://world.openfoodfacts.org/api/v0/product';
+  static const String _opfBaseUrl = 'https://world.openproductsfacts.org/api/v2/product';
+  static const String _offBaseUrl = 'https://world.openfoodfacts.org/api/v2/product';
+  static const String _fields = 'code,product_name,brands,quantity';
 
   /// Lookup barcode across two databases:
   /// 1. Open Products Facts (general products, household items)
   /// 2. Open Food Facts (food, fallback)
   static Future<ScannedProduct?> lookupBarcode(String barcode) async {
+    final userAgent = await _userAgent();
+
     // Try Open Products Facts first (household products)
     final opfResult = await _lookup(
-      '$_opfBaseUrl/$barcode.json',
-      source: 'Open Products Facts',
+      '$_opfBaseUrl/$barcode.json?fields=$_fields',
+      userAgent: userAgent,
     );
     if (opfResult != null) return opfResult;
 
     // Fallback to Open Food Facts
-    final offResult = await _lookup(
-      '$_offBaseUrl/$barcode.json',
-      source: 'Open Food Facts',
+    return _lookup(
+      '$_offBaseUrl/$barcode.json?fields=$_fields',
+      userAgent: userAgent,
     );
-    return offResult;
   }
 
-  static Future<ScannedProduct?> _lookup(String url, {required String source}) async {
+  static Future<String> _userAgent() async {
+    final repoUrl =
+        'https://github.com/${AppConfig.githubOwner}/${AppConfig.githubRepo}';
+    try {
+      final info = await PackageInfo.fromPlatform();
+      return 'HomeInventoryApp/${info.version} ($repoUrl)';
+    } catch (_) {
+      return 'HomeInventoryApp ($repoUrl)';
+    }
+  }
+
+  static Future<ScannedProduct?> _lookup(String url, {required String userAgent}) async {
     try {
       final response = await http.get(
         Uri.parse(url),
         headers: {
-          'User-Agent': 'HomeInventoryApp - Flutter',
+          'User-Agent': userAgent,
         },
       ).timeout(const Duration(seconds: 8));
 

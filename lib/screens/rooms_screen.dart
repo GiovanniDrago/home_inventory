@@ -38,16 +38,17 @@ class RoomsScreen extends ConsumerWidget {
           );
         }
 
-        return ListView.builder(
+        return ReorderableListView.builder(
           padding: const EdgeInsets.all(16),
-          itemCount: rooms.length + 1,
+          itemCount: rooms.length,
+          onReorder: (oldIndex, newIndex) {
+            if (newIndex > oldIndex) newIndex -= 1;
+            ref.read(roomsProvider.notifier).reorderRooms(oldIndex, newIndex);
+          },
+          footer: const _AddRoomCard(),
           itemBuilder: (context, index) {
-            if (index == rooms.length) {
-              return _AddRoomCard();
-            }
-
             final room = rooms[index];
-            return _RoomCard(room: room);
+            return _RoomCard(key: ValueKey(room.id), room: room);
           },
         );
       },
@@ -60,13 +61,14 @@ class RoomsScreen extends ConsumerWidget {
 class _RoomCard extends ConsumerWidget {
   final dynamic room;
 
-  const _RoomCard({required this.room});
+  const _RoomCard({super.key, required this.room});
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     return Card(
       margin: const EdgeInsets.only(bottom: 12),
-      child: GestureDetector(
+      clipBehavior: Clip.antiAlias,
+      child: InkWell(
         onTap: () {
           ref.read(currentRoomIdProvider.notifier).state = room.id;
           ref.read(productsProvider.notifier).loadProducts(
